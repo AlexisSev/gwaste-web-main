@@ -1,0 +1,649 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+.main-content {
+  margin-left: 220px;
+  width: calc(100% - 220px);
+  min-height: 100vh;
+  position: relative;
+  background: #fff;
+}
+
+.main-content-padding {
+  padding-top: 70px;
+}
+
+.page-content {
+  padding: 25px 20px 20px 20px;
+}
+
+.sidebar {
+  width: 220px;
+  height: 100vh;
+  background: #336A29;
+  color: #fff;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  box-shadow: 2px 0 12px 0 rgba(36,90,54,0.08);
+}
+
+.sidebar-logo-section {
+  width: 100%;
+  padding: 32px 0 18px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar-logo-text {
+  font-size: 28px;
+  font-weight: 800;
+  color: #f8f8b0;
+  letter-spacing: 1.5px;
+  font-family: 'Poppins', Arial, sans-serif;
+  text-shadow: 0 2px 8px rgba(2,154,68,0.10);
+}
+
+.sidebar-menu-section {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 0 0 0;
+}
+
+.sidebar-menu-group {
+  width: 100%;
+  margin-top: 0;
+}
+
+.sidebar-menu-label {
+  font-size: 13px;
+  color: #e0f7e9;
+  font-weight: 600;
+  margin-left: 32px;
+  margin-bottom: 10px;
+  margin-top: 0;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  display: block;
+}
+
+.nav-links, .custom-nav-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.nav-links li, .custom-nav-links li {
+  padding: 14px 32px 14px 32px;
+  margin: 8px 0;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 500;
+  font-size: 16px;
+  border-radius: 24px 0 0 24px;
+  transition: background 0.18s, color 0.18s, font-weight 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: none;
+  position: relative;
+  left: 0;
+}
+
+.nav-links li.active, .custom-nav-links li.active {
+  background: #f8f8b0;
+  color: #245a36;
+  font-weight: 700;
+  border-radius: 24px 0 0 24px;
+  box-shadow: 0 2px 8px rgba(2,154,68,0.08);
+}
+
+.nav-links li svg, .custom-nav-links li svg {
+  font-size: 18px;
+  color: inherit;
+  margin-right: 8px;
+}
+
+.sidebar-badge {
+  display: inline-block;
+  min-width: 22px;
+  height: 22px;
+  background: #029a44;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 22px;
+  margin-left: 55px;
+  vertical-align: middle;
+}
+
+/* User card at bottom */
+.sidebar-user-card {
+  position: absolute;
+  bottom: 24px;
+  left: 16px;
+  width: 188px;
+  background: #f8f8b0;
+  color: #245a36;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(2,154,68,0.10);
+}
+
+.sidebar-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e0f7e9;
+  object-fit: cover;
+}
+
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-user-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #245a36;
+}
+
+.sidebar-user-email {
+  font-size: 12px;
+  color: #4e7c5a;
+}
+
+.sidebar-title {
+  text-align: center;
+  padding: 20px 0;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.nav-links {
+  list-style: none;
+  padding: 0;
+}
+
+.nav-links li {
+  padding: 12px 20px;
+  cursor: pointer;
+  color: #ffffff;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-links li:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.nav-links li.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 700;
+  border-left: 4px solid #ffffff;
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.nav-links li.active svg {
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.nav-links li svg {
+  margin-right: 10px;
+  color: #ffffff;
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.logout-section {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #dc3545;
+  color: #ffffff;
+  border: 1px solid #dc3545;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background-color: #c82333;
+  border-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.logout-btn svg {
+  margin-right: 8px;
+  color: #ffffff;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 70px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(36,90,54,0.04);
+  padding: 0 36px 0 0;
+  position: fixed;
+  top: 0;
+  left: 220px;
+  right: 0;
+  z-index: 1000;
+  border-bottom: 2px solid #e8efc7;
+}
+
+.topbar-logo {
+  height: 38px;
+  margin-right: 18px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 270px;
+  margin-left: 18px;
+}
+
+.topbar-welcome {
+  font-size: 20px;
+  font-weight: 500;
+  color: #222;
+  font-family: 'Quicksand', Arial, sans-serif;
+  margin-bottom: 2px;
+}
+
+.topbar-username {
+  font-size: 15px;
+  color: #222;
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 400;
+}
+
+.topbar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.topbar-search-container {
+  display: flex;
+  align-items: center;
+  background: #f7f7d9;
+  border-radius: 24px;
+  padding: 0 18px;
+  box-shadow: 0 2px 8px rgba(36,90,54,0.04);
+  height: 40px;
+  min-width: 340px;
+  max-width: 480px;
+}
+
+.topbar-search-icon {
+  color: #bfc97a;
+  font-size: 22px !important;
+  margin-right: 8px;
+}
+
+.topbar-search {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: #7a7a4d;
+  width: 100%;
+  font-family: 'Quicksand', Arial, sans-serif;
+  padding: 8px 0;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-right: 18px;
+}
+
+.topbar-icon {
+  color: #336a29;
+  font-size: 28px !important;
+  cursor: pointer;
+  transition: color 0.18s;
+}
+
+.topbar-icon:hover {
+  color: #bfc97a;
+}
+
+.topbar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2d6a4f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  position: relative;
+}
+
+.topbar-circle-dot {
+  background: #264e36;
+}
+
+.topbar-dot {
+  width: 10px;
+  height: 10px;
+  background: #f8f8b0;
+  border-radius: 50%;
+  display: block;
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  border: 2px solid #fff;
+}
+
+.avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 3000;
+}
+
+.modal {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  background: white;
+  padding: 20px;
+  width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  background-color: #bdc3c7;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.schedule-calendar-card {
+  background: #f8f8b0;
+  border-radius: 16px;
+  padding: 0 0 32px 0;
+  margin: 40px auto 0 auto;
+  max-width: 1100px;
+  box-shadow: 0 2px 12px rgba(36,90,54,0.06);
+}
+.schedule-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 32px 12px 32px;
+  border-radius: 16px 16px 0 0;
+  background: #f8f8b0;
+  position: relative;
+}
+.schedule-calendar-month {
+  font-size: 26px;
+  font-weight: 700;
+  color: #245a36;
+  margin-bottom: 2px;
+  font-family: 'Poppins', Arial, sans-serif;
+}
+.schedule-calendar-date {
+  font-size: 15px;
+  color: #888;
+  font-weight: 400;
+}
+.schedule-calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.calendar-nav-btn {
+  background: #2d6a4f;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s;
+}
+.calendar-nav-btn:hover {
+  background: #245a36;
+}
+.calendar-view-select {
+  background: #fff;
+  color: #245a36;
+  border: 1px solid #e0e0c0;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 15px;
+  font-family: 'Poppins', Arial, sans-serif;
+  font-weight: 500;
+  outline: none;
+  box-shadow: 0 1px 4px rgba(36,90,54,0.04);
+}
+.edit-schedule-btn {
+  background: #245a36 !important;
+  color: #fff !important;
+  border-radius: 22px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  padding: 10px 32px !important;
+  box-shadow: 0 2px 8px rgba(36,90,54,0.08);
+  position: absolute;
+  right: 32px;
+  top: 24px;
+  text-transform: none !important;
+}
+.schedule-calendar-table {
+  margin: 0 24px;
+  background: #fcfce7;
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+  border: 1px solid #ececc7;
+}
+.calendar-row {
+  display: flex;
+}
+.calendar-header-row {
+  background: #f8f8b0;
+  font-weight: 700;
+  color: #222;
+  font-size: 18px;
+  border-bottom: 1px solid #ececc7;
+}
+.calendar-body-row {
+  background: #fcfce7;
+  min-height: 420px;
+}
+.calendar-cell {
+  flex: 1;
+  min-width: 120px;
+  border-right: 1px solid #ececc7;
+  border-bottom: 1px solid #ececc7;
+  padding: 18px 0;
+  text-align: center;
+  font-size: 17px;
+  color: #222;
+  font-family: 'Poppins', Arial, sans-serif;
+}
+.calendar-header-row .calendar-cell {
+  border-bottom: 1px solid #ececc7;
+  background: #f8f8b0;
+}
+.calendar-row .calendar-cell:last-child {
+  border-right: none;
+}
+.calendar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: absolute;
+  right: 32px;
+  top: 24px;
+}
+.add-schedule-btn {
+  border: 2px solid #245a36 !important;
+  color: #245a36 !important;
+  background: #fff !important;
+  border-radius: 22px !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  padding: 9px 28px !important;
+  box-shadow: 0 2px 8px rgba(36,90,54,0.04);
+  text-transform: none !important;
+  transition: background 0.18s, color 0.18s;
+}
+.add-schedule-btn:hover {
+  background: #e0f7e9 !important;
+  color: #245a36 !important;
+  border-color: #245a36 !important;
+}
+
+/* Logout Modal Redesign */
+.logout-modal-card {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -35%);
+  background: #fff;
+  padding: 36px 32px 28px 32px;
+  width: 340px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(231, 76, 60, 0.10), 0 2px 8px rgba(0,0,0,0.08);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.logout-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.logout-modal-icon {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logout-modal-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e74c3c;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.logout-modal-message {
+  color: #444;
+  font-size: 1.05rem;
+  margin-bottom: 24px;
+  margin-top: 0;
+}
+.logout-modal-buttons {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+}
+.logout-modal-buttons .cancel-btn {
+  background: #f4f4f4;
+  color: #444;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.logout-modal-buttons .cancel-btn:hover {
+  background: #e1e5e9;
+  color: #e74c3c;
+}
+.logout-modal-buttons .logout-btn {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.10);
+}
+.logout-modal-buttons .logout-btn:hover {
+  background: #c0392b;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.18);
+}

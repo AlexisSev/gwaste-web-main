@@ -1,0 +1,132 @@
+.settings-container {
+  padding: 0 0 0 40px;
+  min-height: 100%;
+  background: #fff;
+}
+
+.settings-title {
+  font-size: 2.4rem;
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 500;
+  margin: 32px 0 24px 0;
+  letter-spacing: 1px;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 48px;
+  margin-bottom: 36px;
+}
+
+.settings-tab {
+  background: #f6f7d4;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 32px;
+  font-size: 1.15rem;
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.settings-tab.active {
+  background: #eaeaea;
+  color: #222;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+}
+
+.settings-account-section {
+  margin-top: 16px;
+}
+
+.settings-profile-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 10px;
+}
+
+.settings-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 12px;
+}
+
+.settings-profile-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.settings-profile-btns {
+  display: flex;
+  gap: 24px;
+}
+
+.settings-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 32px;
+  font-size: 1rem;
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  transition: background 0.2s, color 0.2s;
+}
+
+.settings-btn.green {
+  background: #7bb661;
+  color: #fff;
+}
+
+.settings-btn.green:hover {
+  background: #4b8b3b;
+}
+
+.settings-btn.red {
+  background: #f3f3f3;
+  color: #e74c3c;
+  box-shadow: 2px 4px 0 #d3d3d3;
+}
+
+.settings-btn.red:hover {
+  background: #ffeaea;
+  color: #c0392b;
+}
+
+.settings-profile-name-placeholder {
+  width: 420px;
+  height: 38px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .settings-container {
+    padding: 24px 6px 0 6px;
+  }
+  .settings-profile-name-placeholder {
+    width: 100%;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-tabs {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .settings-profile-row {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+} 
