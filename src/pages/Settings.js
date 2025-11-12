@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Settings.css";
 import ProfileImg from "../logo.svg";
-import { useEffect } from "react";
 
 const tabs = [
   { label: "Account" },
@@ -37,6 +36,7 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
     };
     reader.readAsDataURL(file);
   };
+
   const handleDeletePhoto = () => {
     setProfileImg(ProfileImg);
     localStorage.removeItem('profileImg');
@@ -75,6 +75,7 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
   return (
     <div className="settings-container">
       <h1 className="settings-title">Settings</h1>
+
       <div className="settings-tabs">
         {tabs.map((tab, idx) => (
           <button
@@ -86,53 +87,65 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
           </button>
         ))}
       </div>
+
       {activeTab === 0 && (
         <div className="settings-account-section">
           <div className="settings-profile-label">Profile Picture</div>
           <div className="settings-profile-row">
             <img src={profileImg} alt="Profile" className="settings-profile-img" />
             <div className="settings-profile-btns">
-              <label className="settings-btn green" style={{ cursor: 'pointer' }}>
+              <label className="settings-btn green">
                 Change photo
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleChangePhoto} />
+                <input type="file" accept="image/*" className="hidden-input" onChange={handleChangePhoto} />
               </label>
               <button className="settings-btn red" onClick={handleDeletePhoto}>Delete Photo</button>
             </div>
           </div>
-          <div className="settings-profile-label" style={{ marginTop: 32 }}>Profile name</div>
+
+          <div className="settings-profile-label">Profile name</div>
           <div className="settings-profile-name-placeholder">{profileName}</div>
-          <div className="settings-profile-label" style={{ marginTop: 18 }}>Email</div>
+
+          <div className="settings-profile-label">Email</div>
           <div className="settings-profile-name-placeholder">{profileEmail}</div>
         </div>
       )}
+
       {activeTab === 1 && (
         <form className="settings-account-section" onSubmit={handleChangePassword}>
-          <div className="settings-profile-label">Current Password</div>
-          <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="settings-profile-name-placeholder" style={{ height: 38, marginBottom: 12 }} />
-          <div className="settings-profile-label">New Password</div>
-          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="settings-profile-name-placeholder" style={{ height: 38, marginBottom: 12 }} />
-          <div className="settings-profile-label">Confirm New Password</div>
-          <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="settings-profile-name-placeholder" style={{ height: 38, marginBottom: 18 }} />
+          <label className="settings-profile-label">Current Password</label>
+          <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="settings-input" />
+
+          <label className="settings-profile-label">New Password</label>
+          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="settings-input" />
+
+          <label className="settings-profile-label">Confirm New Password</label>
+          <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="settings-input" />
+
           <button className="settings-btn green" type="submit">Change Password</button>
         </form>
       )}
+
       {activeTab === 2 && (
         <form className="settings-account-section" onSubmit={handleChangeEmail}>
-          <div className="settings-profile-label">New Email</div>
-          <input type="email" value={changeEmail} onChange={e => setChangeEmail(e.target.value)} className="settings-profile-name-placeholder" style={{ height: 38, marginBottom: 18 }} />
+          <label className="settings-profile-label">New Email</label>
+          <input type="email" value={changeEmail} onChange={e => setChangeEmail(e.target.value)} className="settings-input" />
           <button className="settings-btn green" type="submit">Change Email</button>
         </form>
       )}
+
       {activeTab === 3 && (
         <form className="settings-account-section" onSubmit={handleEditInfo}>
-          <div className="settings-profile-label">Edit Name</div>
-          <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="settings-profile-name-placeholder" style={{ height: 38, marginBottom: 12 }} />
-          <div className="settings-profile-label">Edit Email</div>
-          <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} className="settings-profile-name-placeholder" style={{ height: 38, marginBottom: 18 }} />
+          <label className="settings-profile-label">Edit Name</label>
+          <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="settings-input" />
+
+          <label className="settings-profile-label">Edit Email</label>
+          <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} className="settings-input" />
+
           <button className="settings-btn green" type="submit">Save Changes</button>
         </form>
       )}
-      {message && <div style={{ marginTop: 24, color: '#386D2C', fontWeight: 600 }}>{message}</div>}
+
+      {message && <div className="settings-message">{message}</div>}
     </div>
   );
 };

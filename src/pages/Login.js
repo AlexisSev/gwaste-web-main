@@ -49,64 +49,128 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  return (
-    <div className="login-split-bg">
-      <div className="login-bg-centered">
-        <div className="login-card">
-          <h2 className="login-title">Welcome Back, Admin!</h2>
-          <p className="login-subtitle">Ready to manage things?</p>
+return (
+  <div className="login-split-bg" style={{ display: "flex", minHeight: "100vh" }}>
+    {/* LEFT SIDE (Illustration / Wallpaper) */}
+    <div
+      className="login-split-left"
+      style={{
+        flex: 1,
+        backgroundImage: "url('/loginpic.png')", // ✅ image from /public
+        backgroundSize: "cover",                  // makes it cover the whole section
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        filter: "brightness(0.95)",               // slightly softens the image
+      // subtle inner shadow for depth
+      }}
+    >
+    </div>
 
-          {error && <div className="error-message">{error}</div>}
+    {/* RIGHT SIDE (Login Form Card) */}
+    <div className="login-split-right">
+      <div className="login-card">
+        <h2 className="login-title">Log in</h2>
+        <p className="login-subtitle">Access your admin dashboard</p>
 
-          <form className="login-form-modern" onSubmit={handleSubmit}>
-            <div className="input-icon-group">
-              <span className="input-icon"><FaUser /></span>
-              <input
-                type="email"
-                name="email"
-                placeholder="awesome@user.com"
-                value={credentials.email}
-                onChange={handleInputChange}
-                required
-                disabled={loading}
-                autoComplete="username"
-              />
-            </div>
+        {error && <div className="error-message">{error}</div>}
 
-            <div className="input-icon-group">
-              <span className="input-icon"><FaLock /></span>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Password"
-                value={credentials.password}
-                onChange={handleInputChange}
-                required
-                disabled={loading}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
+        <form className="login-form-modern" onSubmit={handleSubmit}>
+          <div className="input-icon-group">
+            <span className="input-icon"><FaUser /></span>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              value={credentials.email}
+              onChange={handleInputChange}
+              required
+              disabled={loading}
+              autoComplete="username"
+            />
+          </div>
 
-            <div className="login-form-links">
-              <a href="#" className="forgot-link">Forgot your password?</a>
-            </div>
+    <div className="input-icon-group" style={{ position: "relative" }}>
+        <span
+          className="input-icon"
+          style={{
+            position: "absolute",
+            left: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "#888",
+          }}
+        >
+          <FaLock />
+        </span>
 
-            <button type="submit" className="login-btn-modern" disabled={loading}>
-              {loading ? "Logging In..." : "Log In"}
-            </button>
-          </form>
+      <input
+        type={showPassword ? "text" : "password"}
+        name="password"
+        placeholder="Password"
+        value={credentials.password}
+        onChange={handleInputChange}
+        required
+        disabled={loading}
+        autoComplete="current-password"
+        style={{
+          width: "100%",
+          padding: "10px 40px 10px 36px", // space for icons
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+          outline: "none",
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        disabled={loading}
+        style={{
+          position: "absolute",
+          right: "12px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          color: "#555",
+        }}
+      >
+        {showPassword ? <FaEyeSlash /> : <FaEye />}
+      </button>
+    </div>
+
+
+          <button type="submit" className="login-btn-modern" disabled={loading}>
+            {loading ? "Logging In..." : "Log In"}
+          </button>
+        </form>
+
+        {/* Divider */}
+        <p style={{ fontSize: "0.9rem", color: "#777", margin: "12px 0" }}>
+          or log in with
+        </p>
+
+        {/* Social Icons */}
+        <div className="login-social-icons">
+          <a href="#"><i className="fab fa-google"></i></a>
+          <a href="#"><i className="fab fa-facebook-f"></i></a>
+          <a href="#"><i className="fab fa-github"></i></a>
         </div>
+
+        <p className="login-bottom-text">
+          Don’t have an account? 
+          <a href="#" className="signup-link"> Sign up</a>
+        </p>
       </div>
     </div>
-  );
+  </div>
+);
+
+
 };
 
 export default Login;
