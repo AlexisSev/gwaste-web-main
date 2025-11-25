@@ -67,9 +67,8 @@ const ViewMap = () => {
         try {
           const { data, error } = await supabase
             .from("collectors")
-            .select("driver, firstName, lastName, profile_image, collector_ID, id")
-            .or(`collector_ID.eq.${id},id.eq.${id}`)
-            .limit(1)
+            .select("driver, firstName, lastName, profile_image, collector_id, id")
+            .eq("collector_id", id)
             .single();
           if (!error && data) {
             const name = data.driver || [data.firstName, data.lastName].filter(Boolean).join(" ") || "Driver";
@@ -78,7 +77,7 @@ const ViewMap = () => {
           } else {
             driverInfo = { driver: "Unknown Driver", profile_image: null };
           }
-        } catch {
+        } catch (e){
           driverInfo = { driver: "Unknown Driver", profile_image: null };
         }
       }
@@ -176,7 +175,7 @@ const ViewMap = () => {
     // Initial fetch from Supabase TruckLocation
     (async () => {
       const { data, error } = await supabase
-        .from("TruckLocation")
+        .from("trucklocation")
         .select("*")
         .order("updated_at", { ascending: false });
       if (!error && Array.isArray(data)) {
@@ -191,7 +190,7 @@ const ViewMap = () => {
       .channel("realtime:trucklocation")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "TruckLocation" },
+        { event: "*", schema: "public", table: "trucklocation" },
         async (payload) => {
           if (payload.eventType === "DELETE") {
             removeMarker(payload.old || {});
@@ -206,7 +205,7 @@ const ViewMap = () => {
     if (!pollingRef.current) {
       pollingRef.current = setInterval(async () => {
         const { data } = await supabase
-          .from("TruckLocation")
+          .from("trucklocation")
           .select("*")
           .order("updated_at", { ascending: false })
           .limit(200);

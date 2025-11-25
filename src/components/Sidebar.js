@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 import {
   FaTachometerAlt,
@@ -51,6 +52,12 @@ const Sidebar = ({ onNavigate, currentPage, onLogout }) => {
             >
               <FaExclamationTriangle /> Issues
               <span className="sidebar-badge"></span>
+            </li>
+            <li
+              onClick={() => onNavigate("PredictionDb")}
+              className={currentPage === "PredictionDb" ? "active" : ""}
+            >
+              <FaChartBar /> Prediction DB
             </li>
             <li
               onClick={() => onNavigate("Settings")}

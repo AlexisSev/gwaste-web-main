@@ -21,17 +21,6 @@ import {
   Checkbox,
 } from "@mui/material";
 import { Close } from "@mui/icons-material";
-import { db } from "../firebase";
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  onSnapshot,
-  query,
-  orderBy,
-  getDocs,
-} from "firebase/firestore";
 import dayjs from "dayjs";
 import "./Schedule.css";
 import { supabase } from "../supabaseClient";
@@ -51,12 +40,8 @@ const emptyRoute = {
 const ROUTE_NUMBERS = ["1", "2", "3", "4", "5", "6"];
 // Predefined schedules by route for autofill when adding a new schedule
 const ROUTE_PRESETS = {
-  "1": {
-    crew: [
-      "Agostine Estrera Jr",
-      "Roberto Del Carmen",
-      "Joey Cantay",
-    ],
+  1: {
+    crew: ["Agostine Estrera Jr", "Roberto Del Carmen", "Joey Cantay"],
     areas: ["Don Pedro", "Polambato", "Cayang", "TayTayan", "Cogon"],
     time: "07:00",
     endTime: "15:00",
@@ -64,32 +49,17 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Sunday",
   },
-  "2": {
-    crew: [
-      "Ricky Francisco",
-      "Rex Desuyo",
-      "Carlito Tampus",
-    ],
-    areas: [
-      "Sto. Nino",
-      "Sudlonon",
-      "Lourdes",
-      "Carbon",
-      "Pandan",
-      "Bungtod",
-    ],
+  2: {
+    crew: ["Ricky Francisco", "Rex Desuyo", "Carlito Tampus"],
+    areas: ["Sto. Nino", "Sudlonon", "Lourdes", "Carbon", "Pandan", "Bungtod"],
     time: "07:00",
     endTime: "15:00",
     type: "Dili Malata",
     frequency: "Daily",
     dayOff: "Sunday",
   },
-  "3": {
-    crew: [
-      "Noli Dahunan",
-      "Anthony Remulta",
-      "Dominador Antopina",
-    ],
+  3: {
+    crew: ["Noli Dahunan", "Anthony Remulta", "Dominador Antopina"],
     areas: [
       "ARAPAL Farm",
       "Bungtod (Maharat & Laray)",
@@ -102,12 +72,8 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Sunday",
   },
-  "4": {
-    crew: [
-      "Joel Ursal Sr",
-      "Radne Bedrijo",
-      "Jermin Andrade",
-    ],
+  4: {
+    crew: ["Joel Ursal Sr", "Radne Bedrijo", "Jermin Andrade"],
     areas: [
       "A/B Cogon",
       "Siocon",
@@ -122,12 +88,8 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Saturday",
   },
-  "5": {
-    crew: [
-      "Winful Catampatan",
-      "Orgie Menoria",
-      "Wilmor Viray",
-    ],
+  5: {
+    crew: ["Winful Catampatan", "Orgie Menoria", "Wilmor Viray"],
     areas: [
       "Public Market",
       "Cantecson",
@@ -142,16 +104,9 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Saturday",
   },
-  "6": {
-    crew: [
-      "Arnel Casiano",
-      "Marjun Ylanan",
-      "Jade Silad",
-    ],
-    areas: [
-      "Gairan",
-      "Nailon",
-    ],
+  6: {
+    crew: ["Arnel Casiano", "Marjun Ylanan", "Jade Silad"],
+    areas: ["Gairan", "Nailon"],
     time: "07:00",
     endTime: "15:00",
     type: "Dili Malata",
@@ -257,30 +212,58 @@ const Schedule = () => {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, "routes"), orderBy("route"));
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setRoutes(data);
-        // Always set selectedRoute to the first route if none is selected or if the selected route was deleted
-        if (data.length > 0) {
-          setSelectedRoute((prev) =>
-            prev && data.some((r) => r.id === prev) ? prev : data[0].id
-          );
-        } else {
-          setSelectedRoute(null);
+    let isMounted = true;
+
+    const fetchRoutes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("routes")
+          .select("*")
+          .order("route", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching routes:", error);
+          setLoading(false);
+          return;
         }
-        setLoading(false);
-      },
-      () => setLoading(false)
-    ); // Ensure loading is set to false on error
-    return () => unsub();
-    // eslint-disable-next-line
-  }, []); // selectedRoute is intentionally not included to avoid infinite loop
+
+        if (isMounted) {
+          setRoutes(data || []);
+          // Always set selectedRoute to the first route if none is selected or if the selected route was deleted
+          if (data && data.length > 0) {
+            setSelectedRoute((prev) =>
+              prev && data.some((r) => r.id === prev) ? prev : data[0].id
+            );
+          } else {
+            setSelectedRoute(null);
+          }
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error fetching routes:", err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchRoutes();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel("routes-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "routes" },
+        () => fetchRoutes()
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const [collectors, setCollectors] = useState([]);
   useEffect(() => {
@@ -336,18 +319,16 @@ const Schedule = () => {
   );
 
   const availableCrewOptions = Array.from(
-    new Set(
-      [
-        ...((allCrew || [])
-          .map((m) => normalizeCrewName(m))
-          .filter(Boolean)
-          // Hide crew already assigned to other routes when adding a new route
-          // For edit mode, still hide crew assigned to other routes but allow the ones already on this route via union below
-          .filter((name) => !assignedCrewOnOtherRoutes.has(name))),
-        // Always include currently selected crew so they remain visible
-        ...((form.crew || []).filter(Boolean)),
-      ]
-    )
+    new Set([
+      ...(allCrew || [])
+        .map((m) => normalizeCrewName(m))
+        .filter(Boolean)
+        // Hide crew already assigned to other routes when adding a new route
+        // For edit mode, still hide crew assigned to other routes but allow the ones already on this route via union below
+        .filter((name) => !assignedCrewOnOtherRoutes.has(name)),
+      // Always include currently selected crew so they remain visible
+      ...(form.crew || []).filter(Boolean),
+    ])
   );
 
   // Form validation
@@ -392,7 +373,13 @@ const Schedule = () => {
     setModalOpen(true);
   };
   const openEditModal = (route) => {
-    setForm({ ...route, crew: [...route.crew], areas: [...route.areas] });
+    setForm({ 
+      ...route, 
+      endTime: route.end_time, // Map end_time back to endTime
+      dayOff: route.dayoff, // Map dayoff back to dayOff
+      crew: [...(route.crew || [])], // Restore crew data
+      areas: [...(route.areas || [])] 
+    });
     setEditId(route.id);
     setFormErrors({});
     setModalOpen(true);
@@ -448,6 +435,25 @@ const Schedule = () => {
       });
       return;
     }
+    if (name === "driver") {
+      setForm((prev) => {
+        const next = { ...prev, driver: value };
+        // Auto-fill crew when driver is selected (only when adding new schedule)
+        if (!editId && value) {
+          const selectedCollector = collectors.find(c => c.driver === value);
+          if (selectedCollector && selectedCollector.crew) {
+            const crewNames = selectedCollector.crew.map((member) =>
+              typeof member === "string"
+                ? member
+                : [member.firstName, member.lastName].filter(Boolean).join(" ")
+            ).filter(Boolean);
+            next.crew = crewNames;
+          }
+        }
+        return next;
+      });
+      return;
+    }
     if (name === "endTime") {
       // Prevent AM selection when start time is AM
       if (form.time && isAM(form.time) && isAM(value)) {
@@ -465,11 +471,19 @@ const Schedule = () => {
 
     try {
       // Check for crew assignment conflicts
-      const routesSnapshot = await getDocs(query(collection(db, "routes")));
-      const allRoutes = routesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const { data: allRoutes, error: fetchError } = await supabase
+        .from("routes")
+        .select("*");
+
+      if (fetchError) {
+        console.error("Error fetching routes:", fetchError);
+        setSnackbar({
+          open: true,
+          message: "Error checking crew assignments",
+          severity: "error",
+        });
+        return;
+      }
 
       let newCrewMembers = form.crew || [];
       if (typeof newCrewMembers === "string") {
@@ -478,7 +492,7 @@ const Schedule = () => {
       newCrewMembers = newCrewMembers.filter((c) => c); // removes blanks
       // Check if any crew members are already assigned to other routes
       const assignedCrewMembers = [];
-      for (const route of allRoutes) {
+      for (const route of allRoutes || []) {
         // Skip the current route if editing
         if (editId && route.id === editId) continue;
 
@@ -516,17 +530,47 @@ const Schedule = () => {
       if (coords.length === 1) {
         coords = [coords[0], coords[0]];
       }
-      // Clean crew and areas to remove empty/whitespace-only entries
-      const cleanedCrew = (Array.isArray(form.crew) ? form.crew : [])
-        .map((c) => (typeof c === "string" ? c.trim() : c))
-        .filter((c) => (typeof c === "string" ? c.length > 0 : !!c));
+      // Clean areas to remove empty/whitespace-only entries
       const cleanedAreas = (Array.isArray(form.areas) ? form.areas : [])
         .map((a) => (typeof a === "string" ? a.trim() : a))
         .filter((a) => (typeof a === "string" ? a.length > 0 : !!a));
 
-      const formWithCoords = { ...form, crew: cleanedCrew, areas: cleanedAreas, coordinates: coords };
+      // Clean crew to remove empty/whitespace-only entries
+      const cleanedCrew = (Array.isArray(form.crew) ? form.crew : [])
+        .map((c) => (typeof c === "string" ? c.trim() : c))
+        .filter((c) => (typeof c === "string" ? c.length > 0 : !!c));
+
+      // Map form fields to database column names
+      const mappedData = {
+        route: form.route,
+        driver: form.driver,
+        type: form.type,
+        time: form.time,
+        end_time: form.endTime, // Map endTime to end_time
+        frequency: form.frequency,
+        areas: cleanedAreas, // This is already an array
+        crew: cleanedCrew, // Add crew field back
+        dayoff: form.dayOff, // Map dayOff to dayoff
+        coordinates: coords,
+        collectedareas: "", // Initialize as empty string
+      };
+
       if (editId) {
-        await updateDoc(doc(db, "routes", editId), formWithCoords);
+        const { error: updateError } = await supabase
+          .from("routes")
+          .update(mappedData)
+          .eq("id", editId);
+
+        if (updateError) {
+          console.error("Error updating route:", updateError);
+          setSnackbar({
+            open: true,
+            message: "Error updating route",
+            severity: "error",
+          });
+          return;
+        }
+
         setSnackbar({
           open: true,
           message: "Route updated!",
@@ -538,12 +582,27 @@ const Schedule = () => {
         if (!color) {
           color = ROUTE_COLORS[Math.floor(Math.random() * ROUTE_COLORS.length)];
         }
-        const routeWithColor = { ...formWithCoords, color };
-        await addDoc(collection(db, "routes"), routeWithColor);
+        const routeWithColor = { ...mappedData, color };
+
+        const { error: insertError } = await supabase
+          .from("routes")
+          .insert([routeWithColor]);
+
+        if (insertError) {
+          console.error("Error adding route:", insertError);
+          setSnackbar({
+            open: true,
+            message: "Error adding route",
+            severity: "error",
+          });
+          return;
+        }
+
         setSuccessModalOpen(true); // Show success modal
       }
       closeModal();
     } catch (err) {
+      console.error("Error saving route:", err);
       setSnackbar({
         open: true,
         message: "Error saving route",
@@ -639,16 +698,16 @@ const Schedule = () => {
                       )
                       .join(" • ")}
                 </td>
-                <td style={{ padding: 10 }}>
+                <td style={{ padding: 10 }}>  
                   {route.areas && route.areas.filter(Boolean).join(" • ")}
                 </td>
                 <td style={{ padding: 10, whiteSpace: "nowrap" }}>
                   {formatTime12h(route.time)}
-                  {route.endTime ? ` - ${formatTime12h(route.endTime)}` : ""}
+                  {route.end_time ? ` - ${formatTime12h(route.end_time)}` : ""}
                 </td>
                 <td style={{ padding: 10, paddingLeft: 35 }}>{route.type}</td>
                 <td style={{ padding: 10 }}>{route.frequency}</td>
-                <td style={{ padding: 10 }}>{route.dayOff}</td>
+                <td style={{ padding: 10 }}>{route.dayoff}</td>
                 <td style={{ padding: 10 }}>
                   <Button
                     variant="outlined"
@@ -744,14 +803,20 @@ const Schedule = () => {
                       key={selected}
                       label={selected}
                       size="small"
-                      onDelete={() => setForm((prev) => ({ ...prev, driver: "" }))}
+                      onDelete={() =>
+                        setForm((prev) => ({ ...prev, driver: "" }))
+                      }
                     />
                   ) : null}
                 </Box>
               )}
             >
-              {Array.from(new Set([...(allDrivers || []), ...(form.driver ? [form.driver] : [])]))
-                .map((driver) => (
+              {Array.from(
+                new Set([
+                  ...(allDrivers || []),
+                  ...(form.driver ? [form.driver] : []),
+                ])
+              ).map((driver) => (
                 <MenuItem key={driver} value={driver}>
                   {driver}
                 </MenuItem>
@@ -776,28 +841,16 @@ const Schedule = () => {
               input={<OutlinedInput label="Crew Members" />}
               renderValue={(selected) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {selected.length > 0
-                    ? selected.map((value) => (
-                        <Chip
-                          key={value}
-                          label={value}
-                          size="small"
-                          onDelete={() =>
-                            setForm((prev) => ({
-                              ...prev,
-                              crew: (prev.crew || []).filter((c) => c !== value),
-                            }))
-                          }
-                        />
-                      ))
-                    : null}
+                  {selected.map((value) => (
+                    <Chip key={value} label={value} size="small" />
+                  ))}
                 </Box>
               )}
             >
-              {availableCrewOptions.map((crew) => (
-                <MenuItem key={crew} value={crew}>
-                  <Checkbox checked={form.crew.indexOf(crew) > -1} />
-                  {crew}
+              {availableCrewOptions.map((crewMember) => (
+                <MenuItem key={crewMember} value={crewMember}>
+                  <Checkbox checked={form.crew.indexOf(crewMember) > -1} />
+                  {crewMember}
                 </MenuItem>
               ))}
             </Select>
@@ -893,13 +946,10 @@ const Schedule = () => {
             value={form.endTime}
             onChange={handleFormChange}
             error={!!formErrors.endTime}
-            helperText={
-              formErrors.endTime || 
-              (form.time && isAM(form.time))
-            }
-            inputProps={{ 
+            helperText={formErrors.endTime || (form.time && isAM(form.time))}
+            inputProps={{
               min: getMinEndTime(form.time),
-              max: "23:59"
+              max: "23:59",
             }}
             onFocus={(e) => {
               // If start time is AM, restrict end time to PM only

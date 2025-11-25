@@ -119,9 +119,7 @@ const Collector = () => {
     if (!validate()) { setAddLoading(false); return; }
     
     try {
-      // Fetch the latest collectors from Supabase for duplicate check
       const { data: latestCollectors } = await supabase.from("collectors").select("*");
-      // Fetch all routes to check crew assignments
       const { data: allRoutes } = await supabase.from("routes").select("*");
       
       // Gather existing names by role (case-insensitive)

@@ -235,3 +235,25 @@
   justify-content: center;
   background: #458a3d;
 } 
+
+/* Remove browser autofill / blue fill on inputs (Chrome/Safari) */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill,
+input:-webkit-autofill:hover,
+textarea:-webkit-autofill:hover,
+select:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #f7f7f7 inset !important;
+  box-shadow: 0 0 0px 1000px #f7f7f7 inset !important;
+  -webkit-text-fill-color: #222 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Ensure focus doesn't add an unwanted blue outline on inputs inside the icon group */
+.input-icon-group input:focus {
+  outline: none;
+  box-shadow: none;
+}

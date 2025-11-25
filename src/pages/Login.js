@@ -22,13 +22,11 @@ const Login = ({ onLogin }) => {
     setError("");
 
     try {
-      // Basic validation
       if (!credentials.email || !credentials.password) {
         setError("Enter your email and password.");
         return;
       }
 
-      // Sign in with Supabase Auth (manage users in Authentication tab)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -39,7 +37,6 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      // ✅ Successful login using Supabase Auth user
       const user = authData.user;
       onLogin(user.user_metadata?.name || user.email || "User", user.email);
     } catch (err) {
@@ -51,20 +48,18 @@ const Login = ({ onLogin }) => {
 
 return (
   <div className="login-split-bg" style={{ display: "flex", minHeight: "100vh" }}>
-    {/* LEFT SIDE (Illustration / Wallpaper) */}
     <div
       className="login-split-left"
       style={{
         flex: 1,
-        backgroundImage: "url('/loginpic.png')", // ✅ image from /public
-        backgroundSize: "cover",                  // makes it cover the whole section
+        backgroundImage: "url('/loginpic.png')", 
+        backgroundSize: "cover",                 
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        filter: "brightness(0.95)",               // slightly softens the image
-      // subtle inner shadow for depth
+        filter: "brightness(0.95)",              
       }}
     >
     </div>
@@ -100,7 +95,7 @@ return (
             left: "12px",
             top: "50%",
             transform: "translateY(-50%)",
-            color: "#888",
+            color: "#2e7d6b",
           }}
         >
           <FaLock />
@@ -119,7 +114,6 @@ return (
           width: "100%",
           padding: "10px 40px 10px 36px", // space for icons
           borderRadius: "8px",
-          border: "1px solid #ccc",
           outline: "none",
         }}
       />
@@ -149,22 +143,19 @@ return (
           </button>
         </form>
 
-        {/* Divider */}
+        {/* Divider
         <p style={{ fontSize: "0.9rem", color: "#777", margin: "12px 0" }}>
           or log in with
-        </p>
+        </p> */}
 
-        {/* Social Icons */}
+        {/* Social Icons
         <div className="login-social-icons">
           <a href="#"><i className="fab fa-google"></i></a>
           <a href="#"><i className="fab fa-facebook-f"></i></a>
           <a href="#"><i className="fab fa-github"></i></a>
-        </div>
+        </div> */}
 
-        <p className="login-bottom-text">
-          Don’t have an account? 
-          <a href="#" className="signup-link"> Sign up</a>
-        </p>
+       
       </div>
     </div>
   </div>
