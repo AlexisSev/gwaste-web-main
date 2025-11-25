@@ -21,7 +21,7 @@ This project aims to develop the **G-Waste** system to help residents, operation
 
 ## 🛠️ Tech Stack
 - **Frontend (Mobile):** React Native (Expo) + Leaflet (WebView for Maps)  
-- **Backend:** Supabase (Postgres + Row Level Security) & Firebase (Auth + Firestore)  
+- **Backend:** Supabase (Postgres + Row Level Security)
 - **Storage:** Supabase Storage (for images, reports, and documents)  
 - **AI/ML:** Predictive analysis for waste collection patterns  
 - **Maps & Geolocation:** OpenStreetMap (Leaflet), OSRM (Routing), Expo Location
