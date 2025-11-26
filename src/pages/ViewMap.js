@@ -3,6 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "../supabaseClient";
 import "./ViewMap.css";
+import PageHero from "../components/PageHero";
 
 // Fix for Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -67,8 +68,9 @@ const ViewMap = () => {
         try {
           const { data, error } = await supabase
             .from("collectors")
-            .select("driver, firstName, lastName, profile_image, collector_id, id")
-            .eq("collector_id", id)
+            .select("driver, firstName, lastName, profile_image, collector_ID, id")
+            .or(`collector_ID.eq.${id},id.eq.${id}`)
+            .limit(1)
             .single();
           if (!error && data) {
             const name = data.driver || [data.firstName, data.lastName].filter(Boolean).join(" ") || "Driver";
@@ -77,7 +79,7 @@ const ViewMap = () => {
           } else {
             driverInfo = { driver: "Unknown Driver", profile_image: null };
           }
-        } catch (e){
+        } catch {
           driverInfo = { driver: "Unknown Driver", profile_image: null };
         }
       }
@@ -175,7 +177,7 @@ const ViewMap = () => {
     // Initial fetch from Supabase TruckLocation
     (async () => {
       const { data, error } = await supabase
-        .from("trucklocation")
+        .from("TruckLocation")
         .select("*")
         .order("updated_at", { ascending: false });
       if (!error && Array.isArray(data)) {
@@ -190,7 +192,7 @@ const ViewMap = () => {
       .channel("realtime:trucklocation")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "trucklocation" },
+        { event: "*", schema: "public", table: "TruckLocation" },
         async (payload) => {
           if (payload.eventType === "DELETE") {
             removeMarker(payload.old || {});
@@ -205,7 +207,7 @@ const ViewMap = () => {
     if (!pollingRef.current) {
       pollingRef.current = setInterval(async () => {
         const { data } = await supabase
-          .from("trucklocation")
+          .from("TruckLocation")
           .select("*")
           .order("updated_at", { ascending: false })
           .limit(200);
@@ -238,6 +240,11 @@ const ViewMap = () => {
 
   return (
     <div className="view-map-container">
+      <PageHero
+        eyebrow="Live tracking"
+        title="Map"
+        subtitle="Monitor truck locations in real time and inspect individual routes."
+      />
       <div className="map-container">
         <div id="map" className="osm-map"></div>
       </div>

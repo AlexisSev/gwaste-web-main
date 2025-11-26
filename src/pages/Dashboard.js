@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import "./Dashboard.css";
 import "../App.css";
+import PageHero from "../components/PageHero";
 import { FaCalendarAlt, FaRoute, FaUserTie, FaUsers, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Area, AreaChart
 } from 'recharts';
 
 function formatTime12h(timeStr) {
@@ -18,131 +19,16 @@ function formatTime12h(timeStr) {
   return `${hour}:${m} ${ampm}`;
 }
 
-function SummaryCard({ icon, label, value, color, darkText }) {
-  const [isHovered, setIsHovered] = useState(false);
-
+function SummaryCard({ icon, label, value, color = '#336A29' }) {
   return (
-    <div
-      className="dashboard-card"
-      style={{
-        flex: 1,
-        minWidth: 280,
-        background: `linear-gradient(135deg, ${color} 0%, ${color}DD 100%)`,
-        color: darkText ? '#336A29' : '#fff',
-        borderRadius: 20,
-        padding: 32,
-        boxShadow: isHovered
-          ? '0 12px 32px rgba(51,106,41,0.25), 0 8px 16px rgba(51,106,41,0.15)'
-          : '0 4px 16px rgba(51,106,41,0.12), 0 2px 8px rgba(51,106,41,0.08)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        marginBottom: 0,
-        cursor: 'pointer',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-        transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
-        border: `1px solid ${color}33`
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Animated background gradient overlay */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)`,
-        transform: isHovered ? 'translateX(100%)' : 'translateX(-100%)',
-        transition: 'transform 0.6s ease',
-        pointerEvents: 'none'
-      }} />
-
-      {/* Floating particles effect */}
-      <div style={{
-        position: 'absolute',
-        top: '20%',
-        left: '20%',
-        width: 4,
-        height: 4,
-        background: 'rgba(255,255,255,0.6)',
-        borderRadius: '50%',
-        animation: isHovered ? 'float 3s ease-in-out infinite' : 'none',
-        opacity: isHovered ? 1 : 0,
-        transition: 'opacity 0.3s ease'
-      }} />
-      <div style={{
-        position: 'absolute',
-        top: '60%',
-        right: '25%',
-        width: 3,
-        height: 3,
-        background: 'rgba(255,255,255,0.4)',
-        borderRadius: '50%',
-        animation: isHovered ? 'float 4s ease-in-out infinite reverse' : 'none',
-        opacity: isHovered ? 1 : 0,
-        transition: 'opacity 0.3s ease'
-      }} />
-
-      <div style={{
-        background: darkText
-          ? 'linear-gradient(135deg, #fff 0%, #f8f9fa 100%)'
-          : 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%)',
-        borderRadius: '50%',
-        width: 64,
-        height: 64,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-        fontSize: 28,
-        boxShadow: isHovered
-          ? '0 8px 24px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.1)'
-          : '0 4px 12px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.05)',
-        transition: 'all 0.3s ease',
-        transform: isHovered ? 'scale(1.1) rotate(5deg)' : 'scale(1) rotate(0deg)',
-        border: `2px solid ${darkText ? 'rgba(51,106,41,0.2)' : 'rgba(255,255,255,0.3)'}`
-      }}>
+    <div className="summary-card" style={{ '--summary-accent': color }}>
+      <div className="summary-card__icon">
         {icon}
       </div>
-
-      <div style={{
-        fontSize: 16,
-        fontWeight: 600,
-        opacity: 0.9,
-        marginBottom: 8,
-        letterSpacing: '0.5px',
-        textAlign: 'center'
-      }}>
-        {label}
+      <div className="summary-card__meta">
+        <p>{label}</p>
+        <strong>{value}</strong>
       </div>
-
-      <div style={{
-        fontSize: 36,
-        fontWeight: 900,
-        marginTop: 4,
-        textShadow: darkText ? 'none' : '0 2px 4px rgba(0,0,0,0.3)',
-        letterSpacing: '-0.5px'
-      }}>
-        {value}
-      </div>
-
-      {/* Animated border effect */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 3,
-        background: `linear-gradient(90deg, ${color}AA, ${color}FF, ${color}AA)`,
-        transform: isHovered ? 'scaleX(1)' : 'scaleX(0)',
-        transformOrigin: 'center',
-        transition: 'transform 0.4s ease',
-        borderRadius: '0 0 20px 20px'
-      }} />
     </div>
   );
 }
@@ -279,6 +165,21 @@ const Dashboard = () => {
 
   // Calculate reports statistics
   const pendingReports = reports.filter(r => r.status === 'pending').length;
+  const resolvedReports = reports.filter(r => r.status === 'resolved').length;
+  const totalReportsCount = reports.length;
+
+  const todayIso = new Date().toISOString().split('T')[0];
+  const todayCollections = collections.filter(collection => {
+    const date = collection.collected_date || collection.created_at?.split('T')[0];
+    return date === todayIso;
+  }).length;
+
+  const spotlightStats = [
+    { label: 'Active routes', value: uniqueRoutes.length, sub: 'Monitored' },
+    { label: 'Drivers', value: uniqueDrivers, sub: 'On duty' },
+    { label: 'Crew members', value: totalCrew, sub: 'Assigned' },
+    { label: 'Collections today', value: todayCollections, sub: 'Logged' },
+  ];
 
   // Analytics data processing
   const getCollectionsByDate = () => {
@@ -303,360 +204,137 @@ const Dashboard = () => {
     }));
   };
 
-  const getReportsByStatus = () => {
-    const statusCounts = reports.reduce((acc, report) => {
-      const status = report.status || 'pending';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(statusCounts).map(([status, count]) => ({
-      name: status.charAt(0).toUpperCase() + status.slice(1),
-      value: count,
-      color: status === 'resolved' ? '#28a745' : status === 'pending' ? '#ffc107' : '#6c757d'
-    }));
-  };
-
-  const getWasteTypesDistribution = () => {
-    const wasteCounts = collections.reduce((acc, collection) => {
-      const type = collection.waste_type || 'Unknown';
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
-
-    const colors = ['#336A29', '#4B8B3B', '#6CBF47', '#A3C76D', '#e74c3c', '#f39c12'];
-    return Object.entries(wasteCounts).map(([type, count], index) => ({
-      name: type,
-      value: count,
-      color: colors[index % colors.length]
-    }));
-  };
-
-  const getCollectionsByHour = () => {
-    const hourCounts = {};
-    for (let i = 0; i < 24; i++) {
-      hourCounts[i] = 0;
-    }
-
-    collections.forEach(collection => {
-      const date = collection.collected_at || collection.created_at;
-      if (date) {
-        const hour = new Date(date).getHours();
-        hourCounts[hour]++;
-      }
-    });
-
-    return Object.entries(hourCounts).map(([hour, count]) => ({
-      hour: `${hour}:00`,
-      collections: count
-    }));
-  };
 
   return (
-    <div style={{ background: '#f7f7f9', minHeight: '100vh', padding: 0 }}>
-      <div className="dashboard" style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: 32,
-        animation: 'fadeInUp 0.8s ease-out'
-      }}>
-        {/* Summary Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 20,
-          marginBottom: 32,
-          animation: 'slideInLeft 0.6s ease-out 0.2s both'
-        }}>
-          <SummaryCard icon={<FaCalendarAlt />} label="Total Schedules" value={totalSchedules} color="#336A29" />
-          <SummaryCard icon={<FaRoute />} label="Total Routes" value={uniqueRoutes.length} color="#4B8B3B" />
-          <SummaryCard icon={<FaUserTie />} label="Total Drivers" value={uniqueDrivers} color="#6CBF47" />
-          <SummaryCard icon={<FaUsers />} label="Total Crew" value={totalCrew} color="#A3C76D" darkText />
-          <SummaryCard icon={<FaCheckCircle />} label="Completed Pickups" value={completedPickups} color="#28a745" />
-          <SummaryCard icon={<FaExclamationCircle />} label="Pending Reports" value={pendingReports} color="#f39c12" darkText />
-        </div>
+    <div className="dashboard-content">
+        <PageHero
+          eyebrow="Operations overview"
+          title="Dashboard"
+          subtitle="Monitor routes, teams, and resident reports in one view."
+        />
 
-        {/* Analytics Charts Section */}
-        <div style={{
-          marginBottom: 32,
-          animation: 'slideInRight 0.6s ease-out 0.4s both'
-        }}>
-          <h2 style={{
-            fontSize: 24,
-            fontWeight: 700,
-            color: '#336A29',
-            marginBottom: 20,
-            textAlign: 'center'
-          }}>
-            📊 Analytics Overview
-          </h2>
+        <section className="dashboard-summary-grid">
+          <SummaryCard icon={<FaCalendarAlt />} label="Total schedules" value={totalSchedules} color="#71C66B" />
+          <SummaryCard icon={<FaRoute />} label="Routes" value={uniqueRoutes.length} color="#52A65E" />
+          <SummaryCard icon={<FaUserTie />} label="Drivers" value={uniqueDrivers} color="#3F8F5D" />
+          <SummaryCard icon={<FaUsers />} label="Crew members" value={totalCrew} color="#2F6B4A" />
+          <SummaryCard icon={<FaCheckCircle />} label="Completed pickups" value={completedPickups} color="#1E9E63" />
+          <SummaryCard icon={<FaExclamationCircle />} label="Pending reports" value={pendingReports} color="#E3B341" />
+        </section>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-            gap: 24,
-            marginBottom: 24
-          }}>
-            {/* Collections Over Time */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 24,
-              minHeight: 300
-            }}>
-              <h3 style={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: '#336A29',
-                marginBottom: 16,
-                textAlign: 'center'
-              }}>
-                Collections (Last 7 Days)
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={getCollectionsByDate()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" stroke="#666" />
-                  <YAxis stroke="#666" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: 8,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="collections"
-                    stroke="#336A29"
-                    fill="#336A29"
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+        <section className="dashboard-panels-grid dashboard-panels-grid--primary">
+          <div className="dashboard-panel dashboard-panel--wide">
+            <div className="panel-header">
+              <div>
+                <h3>Collections (last 7 days)</h3>
+                <p>Real-time schedule adherence</p>
+              </div>
+              <button type="button" className="ghost-btn">View report</button>
             </div>
-
-            {/* Reports Status Distribution */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 24,
-              minHeight: 300
-            }}>
-              <h3 style={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: '#336A29',
-                marginBottom: 16,
-                textAlign: 'center'
-              }}>
-                Reports Status
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={getReportsByStatus()}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {getReportsByStatus().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-            gap: 24
-          }}>
-            {/* Waste Types Distribution */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 24,
-              minHeight: 300
-            }}>
-              <h3 style={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: '#336A29',
-                marginBottom: 16,
-                textAlign: 'center'
-              }}>
-                Waste Types Distribution
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={getWasteTypesDistribution()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="name" stroke="#666" angle={-45} textAnchor="end" height={80} />
-                  <YAxis stroke="#666" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: 8,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#336A29" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Collections by Hour */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 24,
-              minHeight: 300
-            }}>
-              <h3 style={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: '#336A29',
-                marginBottom: 16,
-                textAlign: 'center'
-              }}>
-                Collections by Hour
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={getCollectionsByHour()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="hour" stroke="#666" />
-                  <YAxis stroke="#666" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: 8,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="collections"
-                    stroke="#4B8B3B"
-                    strokeWidth={3}
-                    dot={{ fill: '#4B8B3B', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#4B8B3B', strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard Tables Section */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gap: 24,
-          marginBottom: 32,
-          animation: 'slideInUp 0.6s ease-out 0.6s both'
-        }}>
-          {/* Only the schedule table remains here */}
-          <div
-            style={{
-              width: '100%',
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 0,
-              marginBottom: 24,
-              overflow: 'hidden',
-              marginTop: 0
-            }}
-          >
-            <div style={{
-              fontWeight: 700,
-              fontSize: 18,
-              color: '#336A29',
-              padding: '15px 15px 15px 15px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              Schedules
-              {routes.length > 6 && (
-                <button 
-                  style={{ 
-                    color: '#336A29', 
-                    fontWeight: 600, 
-                    fontSize: 15, 
-                    textDecoration: 'underline',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={getCollectionsByDate()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" stroke="#9aa79f" />
+                <YAxis stroke="#9aa79f" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e6eee4',
+                    borderRadius: 12,
+                    boxShadow: '0 12px 24px rgba(31,61,42,0.08)'
                   }}
-                  onClick={() => window.location.href = '/schedule'}
-                >
-                  View All
+                />
+                <Area
+                  type="monotone"
+                  dataKey="collections"
+                  stroke="#4B8B3B"
+                  fill="#7cc66d"
+                  fillOpacity={0.35}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="dashboard-panel dashboard-panel--stacked">
+            <div className="panel-header">
+              <div>
+                <h3>Team highlights</h3>
+                <p>Live counters from the field</p>
+              </div>
+            </div>
+            <div className="mini-stats-grid">
+              {spotlightStats.map(item => (
+                <div className="mini-card" key={item.label}>
+                  <p>{item.label}</p>
+                  <strong>{item.value}</strong>
+                  <span>{item.sub}</span>
+                </div>
+              ))}
+            </div>
+            <div className="progress-card">
+              <div className="progress-row">
+                <div>
+                  <p>Resolved reports</p>
+                  <small>{resolvedReports} / {totalReportsCount || 0}</small>
+                </div>
+                <span>{totalReportsCount ? Math.round((resolvedReports / totalReportsCount) * 100) : 0}%</span>
+              </div>
+              <div className="progress-bar">
+                <span style={{ width: `${totalReportsCount ? (resolvedReports / totalReportsCount) * 100 : 0}%` }} />
+              </div>
+              <div className="progress-row">
+                <div>
+                  <p>Pending reports</p>
+                  <small>{pendingReports} items</small>
+                </div>
+                <span>{totalReportsCount ? Math.round((pendingReports / totalReportsCount) * 100) : 0}%</span>
+              </div>
+              <div className="progress-bar muted">
+                <span style={{ width: `${totalReportsCount ? (pendingReports / totalReportsCount) * 100 : 0}%` }} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <section className="dashboard-table-grid">
+          <div className="data-card">
+            <div className="data-card__header">
+              <div>
+                <h3>Schedules</h3>
+                <p>Upcoming routes and crews</p>
+              </div>
+              {routes.length > 6 && (
+                <button type="button" className="view-link" onClick={() => window.location.href = '/schedule'}>
+                  View all
                 </button>
               )}
             </div>
-            <div style={{ overflowX: 'auto', padding: 0 }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'separate',
-                borderSpacing: 0,
-                fontSize: 15,
-                color: '#222',
-                minWidth: 800
-              }}>
+            <div className="table-scroll">
+              <table className="data-table">
                 <thead>
-                  <tr style={{
-                    background: '#f7f7d9',
-                    color: '#336A29',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1
-                  }}>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Route</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Driver</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Crew</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Barangays</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Time</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Type</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Frequency</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Day Off</th>
+                  <tr>
+                    <th>Route</th>
+                    <th>Driver</th>
+                    <th>Crew</th>
+                    <th>Barangays</th>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Frequency</th>
+                    <th>Day off</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {routes.slice(0, 6).map((route, idx) => (
-                    <tr
-                      key={route.id}
-                      style={{
-                        background: idx % 2 === 0 ? '#fafbfa' : '#f3f6f3',
-                        transition: 'background 0.2s',
-                        cursor: 'pointer'
-                      }}
-                      onMouseOver={e => (e.currentTarget.style.background = '#eafbe6')}
-                      onMouseOut={e => (e.currentTarget.style.background = idx % 2 === 0 ? '#fafbfa' : '#f3f6f3')}
-                    >
-                      <td style={{ padding: 8 }}>{route.route}</td>
-                      <td style={{ padding: 8 }}>{route.driver}</td>
-                      <td style={{ padding: 8 }}>{route.crew && route.crew.filter(Boolean).join(' • ')}</td>
-                      <td style={{ padding: 8 }}>{route.areas && route.areas.filter(Boolean).join(' • ')}</td>
-                      <td style={{ padding: 8 }}>{formatTime12h(route.time)}{route.end_time ? ` - ${formatTime12h(route.end_time)}` : ''}</td>
-                      <td style={{ padding: 8 }}>{route.type}</td>
-                      <td style={{ padding: 8 }}>{route.frequency}</td>
-                      <td style={{ padding: 8 }}>{route.dayoff}</td>
+                  {routes.slice(0, 6).map(route => (
+                    <tr key={route.id}>
+                      <td>{route.route}</td>
+                      <td>{route.driver}</td>
+                      <td>{route.crew && route.crew.filter(Boolean).join(' • ')}</td>
+                      <td>{route.areas && route.areas.filter(Boolean).join(' • ')}</td>
+                      <td>{formatTime12h(route.time)}{route.end_time ? ` - ${formatTime12h(route.end_time)}` : ''}</td>
+                      <td>{route.type}</td>
+                      <td>{route.frequency}</td>
+                      <td>{route.dayoff}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -664,117 +342,58 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Completed Collections Section */}
-          <div
-            style={{
-              width: '100%',
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 0,
-              marginBottom: 24,
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{
-              fontWeight: 700,
-              fontSize: 18,
-              color: '#336A29',
-              padding: '15px 15px 15px 15px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              Recent Completed Collections
+          <div className="data-card">
+            <div className="data-card__header">
+              <div>
+                <h3>Recent completed collections</h3>
+                <p>Latest field submissions</p>
+              </div>
               {collections.length > 5 && (
-                <button
-                  style={{
-                    color: '#336A29',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    textDecoration: 'underline',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                  onClick={() => window.location.href = '/reports'}
-                >
-                  View All
+                <button type="button" className="view-link" onClick={() => window.location.href = '/reports'}>
+                  View all
                 </button>
               )}
             </div>
-            <div style={{ overflowX: 'auto', padding: 0 }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'separate',
-                borderSpacing: 0,
-                fontSize: 14,
-                color: '#222',
-                minWidth: 600
-              }}>
+            <div className="table-scroll">
+              <table className="data-table">
                 <thead>
-                  <tr style={{
-                    background: '#f7f7d9',
-                    color: '#336A29',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1
-                  }}>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Collector</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Areas</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Waste Type</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Date</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Time</th>
+                  <tr>
+                    <th>Collector</th>
+                    <th>Areas</th>
+                    <th>Waste Type</th>
+                    <th>Date</th>
+                    <th>Time</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {collections.slice(0, 5).map((collection, idx) => (
-                    <tr
-                      key={collection.id}
-                      style={{
-                        background: idx % 2 === 0 ? '#fafbfa' : '#f3f6f3',
-                        transition: 'background 0.2s',
-                      }}
-                    >
-                      <td style={{ padding: 10, fontWeight: 500 }}>
-                        {collection.collector_name || 'Unknown'}
-                      </td>
-                      <td style={{ padding: 10 }}>
+                  {collections.slice(0, 5).map(collection => (
+                    <tr key={collection.id}>
+                      <td>{collection.collector_name || 'Unknown'}</td>
+                      <td>
                         {Array.isArray(collection.areas_collected)
                           ? collection.areas_collected.slice(0, 2).join(', ') +
                             (collection.areas_collected.length > 2 ? '...' : '')
-                          : collection.areas_collected || 'N/A'
-                        }
+                          : collection.areas_collected || 'N/A'}
                       </td>
-                      <td style={{ padding: 10 }}>{collection.waste_type || 'N/A'}</td>
-                      <td style={{ padding: 10 }}>
+                      <td>{collection.waste_type || 'N/A'}</td>
+                      <td>
                         {collection.collected_date
                           ? new Date(collection.collected_date).toLocaleDateString()
-                          : 'N/A'
-                        }
+                          : 'N/A'}
                       </td>
-                      <td style={{ padding: 10 }}>
+                      <td>
                         {collection.collected_at
                           ? new Date(collection.collected_at).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit'
                             })
-                          : 'N/A'
-                        }
+                          : 'N/A'}
                       </td>
                     </tr>
                   ))}
                   {collections.length === 0 && (
                     <tr>
-                      <td colSpan="5" style={{
-                        padding: 40,
-                        textAlign: 'center',
-                        color: '#666',
-                        fontSize: 16
-                      }}>
-                        No completed collections yet
-                      </td>
+                      <td colSpan="5" className="empty-row">No completed collections yet</td>
                     </tr>
                   )}
                 </tbody>
@@ -782,129 +401,55 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Recent Reports Section */}
-          <div
-            style={{
-              width: '100%',
-              background: '#fff',
-              borderRadius: 18,
-              boxShadow: '0 2px 8px rgba(51,106,41,0.07)',
-              padding: 0,
-              marginBottom: 24,
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{
-              fontWeight: 700,
-              fontSize: 18,
-              color: '#336A29',
-              padding: '15px 15px 15px 15px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              Recent Reports
+          <div className="data-card">
+            <div className="data-card__header">
+              <div>
+                <h3>Recent reports</h3>
+                <p>Community submissions</p>
+              </div>
               {reports.length > 5 && (
-                <button
-                  style={{
-                    color: '#336A29',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    textDecoration: 'underline',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                  onClick={() => window.location.href = '/reports'}
-                >
-                  View All
+                <button type="button" className="view-link" onClick={() => window.location.href = '/reports'}>
+                  View all
                 </button>
               )}
             </div>
-            <div style={{ overflowX: 'auto', padding: 0 }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'separate',
-                borderSpacing: 0,
-                fontSize: 14,
-                color: '#222',
-                minWidth: 600
-              }}>
+            <div className="table-scroll">
+              <table className="data-table">
                 <thead>
-                  <tr style={{
-                    background: '#f7f7d9',
-                    color: '#336A29',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1
-                  }}>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Description</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Status</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Location</th>
-                    <th style={{ padding: 10, borderBottom: '2px solid #e0e0e0' }}>Date</th>
+                  <tr>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Location</th>
+                    <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reports.slice(0, 5).map((report, idx) => (
-                    <tr
-                      key={report.id}
-                      style={{
-                        background: idx % 2 === 0 ? '#fafbfa' : '#f3f6f3',
-                        transition: 'background 0.2s',
-                      }}
-                    >
-                      <td style={{ padding: 10, maxWidth: 200 }}>
-                        <div style={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {report.description || 'No description'}
-                        </div>
-                      </td>
-                      <td style={{ padding: 10 }}>
-                        <span style={{
-                          padding: '4px 8px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          background: report.status === 'resolved' ? '#d4edda' : '#fff3cd',
-                          color: report.status === 'resolved' ? '#155724' : '#856404'
-                        }}>
+                  {reports.slice(0, 5).map(report => (
+                    <tr key={report.id}>
+                      <td className="truncate">{report.description || 'No description'}</td>
+                      <td>
+                        <span className={`status-pill ${report.status === 'resolved' ? 'resolved' : 'pending'}`}>
                           {report.status || 'pending'}
                         </span>
                       </td>
-                      <td style={{ padding: 10 }}>
-                        {report.location || report.address || 'N/A'}
-                      </td>
-                      <td style={{ padding: 10 }}>
+                      <td>{report.location || report.address || 'N/A'}</td>
+                      <td>
                         {report.created_at
                           ? new Date(report.created_at).toLocaleDateString()
-                          : 'N/A'
-                        }
+                          : 'N/A'}
                       </td>
                     </tr>
                   ))}
                   {reports.length === 0 && (
                     <tr>
-                      <td colSpan="4" style={{
-                        padding: 40,
-                        textAlign: 'center',
-                        color: '#666',
-                        fontSize: 16
-                      }}>
-                        No reports yet
-                      </td>
+                      <td colSpan="4" className="empty-row">No reports yet</td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
     </div>
   );
 };

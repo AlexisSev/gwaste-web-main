@@ -1,7 +1,7 @@
 .collector-mgmt-container {
   padding: 0 0 0 24px;
   min-height: 100%;
-  background: #fff;
+  background: #ffffff;
 }
 
 .collector-mgmt-header {
@@ -42,6 +42,13 @@
   color: #dc3545;
 }
 
+.collector-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .collector-mgmt-actions {
   display: flex;
   align-items: center;
@@ -79,157 +86,204 @@
 }
 
 .collector-mgmt-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 40px;
-  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 32px 28px;
+  margin-top: 24px;
+  padding: 12px 32px 48px;
+  justify-items: center;
 }
 
 .collector-card {
-  background: #f6f7fa;
-  border-radius: 16px;
-  box-shadow: 0 6px 24px rgba(73,132,40,0.13);
-  padding: 28px 0 0 0;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 18px 30px rgba(23, 51, 31, 0.08);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   position: relative;
-  min-height: 260px;
-  width: 270px;
+  min-height: 320px;
+  width: 100%;
+  max-width: 320px;
   margin: 0 auto;
-  transition: box-shadow 0.2s, transform 0.2s, border 0.2s;
-  border: 2.5px solid #4b8b3b;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #e4e9f2;
+}
+
+.collector-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.collector-card__dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dfe5d8;
+  border-radius: 6px;
+  display: inline-flex;
 }
 
 .collector-card:hover {
-  box-shadow: 0 12px 32px rgba(73,132,40,0.18);
-  transform: translateY(-4px) scale(1.03);
-  border: 2.5px solid #386D2C;
+  box-shadow: 0 24px 40px rgba(23, 51, 31, 0.12);
+  transform: translateY(-4px);
 }
 
 .collector-card.inactive {
-  border: 2.5px solid #dc3545;
-  box-shadow: 0 6px 24px rgba(220,53,69,0.13);
-}
-.collector-card.inactive:hover {
-  border: 2.5px solid #a71d2a;
-  box-shadow: 0 12px 32px rgba(220,53,69,0.18);
+  border-color: #f8cfd7;
 }
 
 .collector-status-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: #eafbe6;
-  color: #4b8b3b;
-  font-size: 0.85rem;
+  background: #e9f7ef;
+  color: #1f7a4a;
+  font-size: 0.8rem;
   font-weight: 600;
-  border-radius: 12px;
-  padding: 2px 12px 2px 8px;
-  display: flex;
+  border-radius: 999px;
+  padding: 4px 12px;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  text-transform: capitalize;
 }
 
 .collector-status-badge.inactive {
-  background: #ffeaea;
-  color: #dc3545;
+  background: #fdecee;
+  color: #d63c56;
+}
+
+.collector-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .collector-img-wrapper {
-  margin: 24px 0 8px 0;
-  width: 72px;
-  height: 72px;
+  margin: 0;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: #e0e0e0;
+  background: #eef2f0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  position: relative;
 }
 
 .collector-img {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .collector-img.placeholder {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: #e0e0e0;
+  background: #dbe4d2;
 }
 
 .collector-info {
-  text-align: center;
-  margin-bottom: 12px;
+  text-align: left;
+  margin-bottom: 0;
 }
 
 .collector-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  color: #222;
-  margin-bottom: 2px;
+  color: #1f2a37;
+  margin: 0;
 }
 
 .collector-role {
+  font-size: 0.9rem;
+  color: #7a8494;
+}
+
+.collector-card__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 0 16px;
+}
+
+.collector-meta-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.collector-meta-value {
   font-size: 0.95rem;
-  color: #888;
+  font-weight: 600;
+  color: #1f2a37;
+  margin: 2px 0 0;
+}
+
+.collector-card__contact {
+  border-top: 1px solid #f1f3f5;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contact-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.contact-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #f1f6ef;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b6d3d;
 }
 
 .collector-view-details {
-  margin-top: 8px;
-  font-size: 1.05rem;
-  color: #fff;
-  background: #498428;
+  width: 100%;
+  margin-top: 18px;
+  border-radius: 12px;
+  padding: 10px 0;
+  border: 1px solid #e3e7ee;
+  background: #f6f8fb;
+  color: #2d3b42;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
-  padding: 8px 20px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(73,132,40,0.10);
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-  margin-bottom: 6px;
-  border: none;
-  outline: none;
-  display: inline-block;
+  transition: background 0.2s, box-shadow 0.2s;
 }
 .collector-view-details:hover, .collector-view-details:focus {
-  background: #386D2C;
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(73,132,40,0.18);
+  background: #e8edf8;
+  color: #1d2a36;
+  box-shadow: 0 6px 16px rgba(30, 45, 60, 0.08);
 }
 .collector-edit-btn {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #1976d2;
-  color: #fff !important;
+  border: 1px solid #dfe6d8;
+  background: #fbfdf7;
+  color: #2f5f32;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
   font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-  border: none;
-  outline: none;
-  display: inline-block;
-  font-size: 0.8rem;
-  min-width: 32px;
-  height: 24px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
 }
 .collector-edit-btn:hover, .collector-edit-btn:focus {
-  background: #115293;
-  color: #fff !important;
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.25);
+  background: #eef5e7;
+  color: #2f5f32;
+  box-shadow: 0 4px 12px rgba(76, 136, 75, 0.15);
 }
 
 .green-edit-btn:hover {

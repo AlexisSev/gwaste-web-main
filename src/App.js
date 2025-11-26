@@ -10,19 +10,16 @@ import Collector from "./pages/Collector";
 import Reports from "./pages/Reports";
 import History from "./pages/History";
 import Login from "./pages/Login";
-import PredictionDb from "./pages/PredictionDb";
 import LogoutModal from "./components/LogoutModal";
 import "./App.css";
 import { db } from "./firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import { supabase } from "./supabaseClient";
 
 function App() {
   const [page, setPage] = useState("Dashboard");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unresolvedCount, setUnresolvedCount] = useState(0);
-  const [collectionNotifications, setCollectionNotifications] = useState([]);
   const [adminName, setAdminName] = useState('Admin');
   const [adminEmail, setAdminEmail] = useState('');
 
@@ -33,65 +30,6 @@ function App() {
     });
     return () => unsub();
   }, []);
-
-  // Collection notifications listener
-  useEffect(() => {
-    let isMounted = true;
-
-    console.log("Setting up collection notifications listener...");
-
-
-    const channel = supabase
-      .channel("collections-changes")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "collections" },
-        (payload) => {
-          console.log("Realtime event received:", payload);
-          if (!isMounted) return;
-
-          const newCollection = payload.new;
-          console.log("New collection recorded:", newCollection);
-
-          // Create notification
-          const notification = {
-            id: Date.now(),
-            type: "collection",
-            title: "Garbage Collection Completed",
-            message: `${newCollection.collector_name || "A collector"} completed waste collection`,
-            timestamp: new Date(),
-            data: newCollection,
-            read: false
-          };
-
-          setCollectionNotifications(prev => [notification, ...prev.slice(0, 9)]); // Keep only last 10
-
-          // Optional: Show browser notification if permission granted
-          if (Notification.permission === "granted") {
-            new Notification("G-Waste Collection", {
-              body: `${newCollection.collector_name || "A collector"} completed waste collection`,
-              icon: "/favicon.ico"
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Subscription status:", status);
-        if (status === "SUBSCRIBED") {
-          console.log("Successfully subscribed to collections changes");
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("Failed to subscribe to collections changes");
-        }
-      });
-
-    return () => {
-      isMounted = false;
-      // console.log("Cleaning up collection notifications listener");
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-
 
   const handleLogin = (name, email) => {
     setIsLoggedIn(true);
@@ -116,10 +54,9 @@ function App() {
         return <ViewMap />;
       case "Collector":
         return <Collector />;
+     
       case "Reports":
         return <Reports />;
-      case "PredictionDb":
-        return <PredictionDb />;
       case "History":
         return <History />;
       case "Users":
@@ -135,13 +72,18 @@ function App() {
 
   return (
     <div className="app-container">
-      <Sidebar onNavigate={setPage} onLogout={handleShowLogout} currentPage={page} />
+      <Sidebar
+        onNavigate={setPage}
+        onLogout={handleShowLogout}
+        currentPage={page}
+        adminName={adminName}
+        adminEmail={adminEmail}
+      />
       <div className="main-content main-content-padding">
         <Topbar
-          onLogout={handleShowLogout}
           unresolvedCount={unresolvedCount}
-          collectionNotifications={collectionNotifications}
           adminName={adminName}
+          adminEmail={adminEmail}
         />
         <div className="page-content">{renderPage()}</div>
         <LogoutModal

@@ -2,8 +2,9 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
-import { FaCamera, FaEdit, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaCamera, FaEdit, FaEye, FaEyeSlash, FaEnvelope, FaPhone } from 'react-icons/fa';
 import "./Collector.css";
+import PageHero from "../components/PageHero";
 
 // Helper to remove all routes for a driver
 // eslint-disable-next-line no-unused-vars
@@ -13,6 +14,13 @@ async function removeRoutesForDriver(driverName) {
     .delete()
     .eq("driver", driverName);
 }
+
+const formatDate = (value) => {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
+};
 
 const Collector = () => {
   const [search, setSearch] = useState("");
@@ -119,7 +127,9 @@ const Collector = () => {
     if (!validate()) { setAddLoading(false); return; }
     
     try {
+      // Fetch the latest collectors from Supabase for duplicate check
       const { data: latestCollectors } = await supabase.from("collectors").select("*");
+      // Fetch all routes to check crew assignments
       const { data: allRoutes } = await supabase.from("routes").select("*");
       
       // Gather existing names by role (case-insensitive)
@@ -216,24 +226,33 @@ const Collector = () => {
 
   return (
     <div className="collector-mgmt-container">
-      <div className="collector-mgmt-header">
-        <h1>Collectors</h1>
-        <div className="collector-mgmt-status-toggle">
-          <span
-            className={activeTab === "active" ? "active" : "inactive"}
-            onClick={() => setActiveTab("active")}
-          >
-            ● active
-          </span>
-          <span> • </span>
-          <span
-            className={activeTab === "inactive" ? "inactive active" : "inactive"}
-            onClick={() => setActiveTab("inactive")}
-          >
-            ● inactive
-          </span>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="Collections team"
+        title="Collectors"
+        subtitle="Manage driver profiles, crews, and route assignments."
+        action={
+          <div className="collector-hero-actions">
+            <div className="collector-mgmt-status-toggle">
+              <span
+                className={activeTab === "active" ? "active" : "inactive"}
+                onClick={() => setActiveTab("active")}
+              >
+                ● active
+              </span>
+              <span> • </span>
+              <span
+                className={activeTab === "inactive" ? "inactive active" : "inactive"}
+                onClick={() => setActiveTab("inactive")}
+              >
+                ● inactive
+              </span>
+            </div>
+            <button className="collector-mgmt-add-btn" onClick={openAddModal}>
+              Add Collector
+            </button>
+          </div>
+        }
+      />
       <div className="collector-mgmt-actions">
         <input
           className="collector-mgmt-search"
@@ -242,56 +261,84 @@ const Collector = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <button className="collector-mgmt-add-btn" onClick={openAddModal}>
-          Add Collector
-        </button>
       </div>
       <div className="collector-mgmt-grid">
-        {drivers.map((collector) => (
-          <div className={`collector-card${collector.status === 'inactive' ? ' inactive' : ''}`} key={collector.id}>
-            <span className={`collector-status-badge${collector.status === 'inactive' ? ' inactive' : ''}`}>
-              ● {collector.status}
-            </span>
-            <div className="collector-img-wrapper">
-              <img
-                src={require('../Cooked.jpg')}
-                alt={collector.driver}
-                className="collector-img"
-                style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '50%' }}
-              />
+        {drivers.map((collector) => {
+          const fullName = collector.driver || `${collector.firstName || ""} ${collector.lastName || ""}`.trim() || "Unnamed collector";
+          const roleLabel = collector.role || "Collection Driver";
+          const department = collector.department || "Operations Team";
+          const hired = formatDate(collector.created_at);
+          const email = collector.email || "No email provided";
+          const phone = collector.contact || "No contact number";
+
+          return (
+            <div className={`collector-card${collector.status === 'inactive' ? ' inactive' : ''}`} key={collector.id}>
+              <div className="collector-card__header">
+                <span className="collector-card__dot" aria-hidden="true" />
+                <span className={`collector-status-badge${collector.status === 'inactive' ? ' inactive' : ''}`}>
+                  {collector.status}
+                </span>
+                <button
+                  type="button"
+                  className="collector-edit-btn"
+                  onClick={() => setEditModal({ open: true, collector })}
+                >
+                  <FaEdit />
+                  Edit
+                </button>
+              </div>
+
+              <div className="collector-card__identity">
+                <div className="collector-img-wrapper">
+                  <img
+                    src={require('../Cooked.jpg')}
+                    alt={collector.driver}
+                    className="collector-img"
+                    style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '50%' }}
+                  />
+                </div>
+                <div className="collector-info">
+                  <div className="collector-name">{fullName}</div>
+                  <div className="collector-role">{roleLabel}</div>
+                </div>
+              </div>
+
+              <div className="collector-card__meta">
+                <div>
+                  <p className="collector-meta-label">Department</p>
+                  <p className="collector-meta-value">{department}</p>
+                </div>
+                <div>
+                  <p className="collector-meta-label">Date Hired</p>
+                  <p className="collector-meta-value">{hired}</p>
+                </div>
+              </div>
+
+              <div className="collector-card__contact">
+                <div className="contact-line">
+                  <span className="contact-icon">
+                    <FaEnvelope size={14} />
+                  </span>
+                  <span>{email}</span>
+                </div>
+                <div className="contact-line">
+                  <span className="contact-icon">
+                    <FaPhone size={14} />
+                  </span>
+                  <span>{phone}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="collector-view-details"
+                onClick={() => setDetailsModal({ open: true, collector })}
+              >
+                View Details
+              </button>
             </div>
-            <div
-              className="collector-edit-btn green-edit-btn"
-              onClick={() => setEditModal({ open: true, collector })}
-              style={{
-                marginTop: 8,
-                marginRight: 10,
-                background: '#4B8B3B',
-                borderRadius: '50%',
-                width: 32,
-                height: 32,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(51,106,41,0.10)',
-                transition: 'background 0.2s',
-              }}
-            >
-              <FaEdit style={{ color: '#fff', fontSize: '1.1rem' }} />
-            </div>
-            <div className="collector-info">
-              <div className="collector-name">{collector.driver}</div>
-              <div className="collector-role">Driver</div>
-            </div>
-            <div
-              className="collector-view-details"
-              onClick={() => setDetailsModal({ open: true, collector })}
-            >
-              View Details
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {/* Add Collector Modal */}
       {addModalOpen && (

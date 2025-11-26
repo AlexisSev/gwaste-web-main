@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Settings.css";
 import ProfileImg from "../logo.svg";
+import PageHero from "../components/PageHero";
 
 const tabs = [
   { label: "Account" },
@@ -74,7 +75,11 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
 
   return (
     <div className="settings-container">
-      <h1 className="settings-title">Settings</h1>
+      <PageHero
+        eyebrow="Account"
+        title="Settings"
+        subtitle="Manage your profile, login credentials, and notification preferences."
+      />
 
       <div className="settings-tabs">
         {tabs.map((tab, idx) => (

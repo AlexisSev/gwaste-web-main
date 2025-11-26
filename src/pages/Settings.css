@@ -1,15 +1,11 @@
 /* Full-page container */
 .settings-container {
-  width: 100%;
-  height: 100vh; /* occupy full viewport height */
-  background: #f9fafb; /* light gray background */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px 80px;
-  font-family: "Poppins", sans-serif;
-  box-sizing: border-box;
-  overflow-y: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f5f7f2;
+  font-family: 'Quicksand', Arial, sans-serif;
+  min-height: 100vh;
 }
 
 /* Title */

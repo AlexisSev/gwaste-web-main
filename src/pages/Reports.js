@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import "./Reports.css";
+import PageHero from "../components/PageHero";
 
 const Reports = () => {
   const [search, setSearch] = useState("");
@@ -236,24 +237,28 @@ const Reports = () => {
 
   return (
     <div className="reports-page">
-      <div className="reports-header">
-        <h1>Resident Reports</h1>
-        <div className="reports-tab-toggle">
-          <span
-            className={activeTab === "pending" ? "active" : "inactive"}
-            onClick={() => setActiveTab("pending")}
-          >
-            ● pending
-          </span>
-          <span> • </span>
-          <span
-            className={activeTab === "resolved" ? "inactive active" : "inactive"}
-            onClick={() => setActiveTab("resolved")}
-          >
-            ● resolved
-          </span>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="Community issues"
+        title="Resident Reports"
+        subtitle="Track pending and resolved submissions from residents."
+        action={
+          <div className="reports-tab-toggle">
+            <span
+              className={activeTab === "pending" ? "active" : "inactive"}
+              onClick={() => setActiveTab("pending")}
+            >
+              ● pending
+            </span>
+            <span> • </span>
+            <span
+              className={activeTab === "resolved" ? "inactive active" : "inactive"}
+              onClick={() => setActiveTab("resolved")}
+            >
+              ● resolved
+            </span>
+          </div>
+        }
+      />
 
       {/* Search Bar */}
       <div className="reports-toolbar">
