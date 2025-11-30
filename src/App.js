@@ -291,7 +291,7 @@ function App() {
 
           // Initialize push notifications for admin
           try {
-            const publicVapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY || '';
+            const publicVapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY || window.VAPID_PUBLIC_KEY || '';
             if (publicVapidKey) {
               console.log("🚀 Initializing push notifications for admin...");
               const initialized = await pushNotificationService.initialize(user.id, publicVapidKey);

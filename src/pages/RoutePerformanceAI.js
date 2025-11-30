@@ -626,10 +626,11 @@ export default function RoutePerformanceAI() {
   if (error) {
     return (
       <div className="route-ai-container">
-        {/* <PageHero
-          title="Route Performance AI"
+        <PageHero
+          eyebrow="AI Analysis"
+          title="Performance Predictions"
           subtitle="AI-powered route optimization and predictions"
-        /> */}
+        />
         <div className="route-ai-error">
           <AlertCircle className="route-ai-error-icon" size={48} />
           <h3>Error Loading Data</h3>
@@ -645,32 +646,11 @@ export default function RoutePerformanceAI() {
 
   return (
     <div className="route-ai-container">
-      {/* <PageHero
-        title="Route Performance AI"
-        subtitle="AI-powered route optimization and performance predictions"
-      /> */}
-
-      {/* Header Actions */}
-      <div className="route-ai-header">
-        <div className="route-ai-header-content">
-          <div className="route-ai-title-group">
-            <Brain className="route-ai-title-icon" size={24} />
-            <div>
-              <h1 className="route-ai-title">Performance Predictions</h1>
-              <p className="route-ai-subtitle">
-                {modelReady ? (
-                  <span className="route-ai-ml-badge">
-                    <Sparkles size={14} />
-                    ML-Powered Predictions
-                  </span>
-                ) : trainingModel ? (
-                  'Training AI model...'
-                ) : (
-                  'Real-time AI analysis of route efficiency'
-                )}
-              </p>
-            </div>
-          </div>
+      <PageHero
+        eyebrow="AI Analysis"
+        title="Performance Predictions"
+        subtitle={modelReady ? "AI-powered route optimization and performance predictions" : trainingModel ? "Training AI model..." : "AI-powered route optimization and performance predictions"}
+        action={
           <button 
             className="route-ai-button route-ai-button-primary route-ai-button-icon"
             onClick={fetchPerformanceData}
@@ -679,8 +659,8 @@ export default function RoutePerformanceAI() {
             <RefreshCw size={16} className={loading || trainingModel ? 'route-ai-spin' : ''} />
             Refresh
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Training Indicator */}
       {trainingModel && (
@@ -818,7 +798,7 @@ export default function RoutePerformanceAI() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="route-ai-score-badge-container">
                         <span className="route-ai-score-badge route-ai-score-predicted">
                           {pred.predicted_score}
                         </span>
@@ -857,7 +837,7 @@ export default function RoutePerformanceAI() {
       {recommendations.length > 0 && (
         <div className="route-ai-card">
           <div className="route-ai-card-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="route-ai-recommendations-header">
               <Lightbulb className="route-ai-title-icon" size={20} />
               <div>
                 <h2 className="route-ai-card-title">AI Recommendations</h2>
@@ -915,10 +895,10 @@ export default function RoutePerformanceAI() {
 
       {recommendations.length === 0 && predictions.length > 0 && (
         <div className="route-ai-card">
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <CheckCircle size={48} style={{ color: '#22c55e', marginBottom: '16px' }} />
-            <h3 style={{ color: '#1f2937', marginBottom: '8px' }}>All Routes Performing Well</h3>
-            <p style={{ color: '#6b7280' }}>
+          <div className="route-ai-empty-state">
+            <CheckCircle size={48} className="route-ai-empty-state-icon" />
+            <h3 className="route-ai-empty-state-title">All Routes Performing Well</h3>
+            <p className="route-ai-empty-state-text">
               No critical issues detected. All routes are meeting performance standards.
             </p>
           </div>

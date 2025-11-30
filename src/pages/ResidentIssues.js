@@ -270,23 +270,6 @@ const ResidentIssues = () => {
         eyebrow="Community issues"
         title="Resident Reports"
         subtitle="Track pending and resolved submissions from residents."
-        action={
-          <div className="reports-tab-toggle">
-            <span
-              className={activeTab === "pending" ? "active" : "inactive"}
-              onClick={() => setActiveTab("pending")}
-            >
-              ● pending
-            </span>
-            <span> • </span>
-            <span
-              className={activeTab === "resolved" ? "inactive active" : "inactive"}
-              onClick={() => setActiveTab("resolved")}
-            >
-              ● resolved
-            </span>
-          </div>
-        }
       />
 
       {/* Search Bar */}
@@ -297,6 +280,24 @@ const ResidentIssues = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <div className="reports-actions-right">
+          <div className="reports-tabs-container">
+            <button
+              type="button"
+              className={`reports-tab ${activeTab === "pending" ? "pending" : ""}`}
+              onClick={() => setActiveTab("pending")}
+            >
+              Pending
+            </button>
+            <button
+              type="button"
+              className={`reports-tab ${activeTab === "resolved" ? "resolved" : ""}`}
+              onClick={() => setActiveTab("resolved")}
+            >
+              Resolved
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="reports-table-container">

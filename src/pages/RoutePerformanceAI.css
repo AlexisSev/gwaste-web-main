@@ -623,3 +623,40 @@
   }
 }
 
+/* ============================================
+   INLINE STYLE REPLACEMENTS - ORGANIZED
+   ============================================ */
+
+/* Score Badge Container */
+.route-ai-score-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Recommendations Header */
+.route-ai-recommendations-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Empty State */
+.route-ai-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.route-ai-empty-state-icon {
+  color: #22c55e;
+  margin-bottom: 16px;
+}
+
+.route-ai-empty-state-title {
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.route-ai-empty-state-text {
+  color: #6b7280;
+}

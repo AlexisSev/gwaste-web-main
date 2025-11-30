@@ -247,28 +247,6 @@ const Collector = () => {
         eyebrow="Collections team"
         title="Collectors"
         subtitle="Manage driver profiles, crews, and route assignments."
-        action={
-          <div className="collector-hero-actions">
-            <div className="collector-mgmt-status-toggle">
-              <span
-                className={activeTab === "active" ? "active" : "inactive"}
-                onClick={() => setActiveTab("active")}
-              >
-                ● active
-              </span>
-              <span> • </span>
-              <span
-                className={activeTab === "inactive" ? "inactive active" : "inactive"}
-                onClick={() => setActiveTab("inactive")}
-              >
-                ● inactive
-              </span>
-            </div>
-            <button className="collector-mgmt-add-btn" onClick={openAddModal}>
-              Add Collector
-            </button>
-          </div>
-        }
       />
       <div className="collector-mgmt-actions">
         <input
@@ -278,6 +256,27 @@ const Collector = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <div className="collector-actions-right">
+          <div className="collector-tabs-container">
+            <button
+              type="button"
+              className={`collector-tab ${activeTab === "active" ? "active" : ""}`}
+              onClick={() => setActiveTab("active")}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              className={`collector-tab ${activeTab === "inactive" ? "inactive" : ""}`}
+              onClick={() => setActiveTab("inactive")}
+            >
+              Inactive
+            </button>
+          </div>
+          <button className="collector-mgmt-add-btn" onClick={openAddModal}>
+            Add Collector
+          </button>
+        </div>
       </div>
       <div className="collector-mgmt-grid">
         {drivers.map((collector) => {
@@ -290,7 +289,6 @@ const Collector = () => {
           return (
             <div className={`collector-card${collector.status === 'inactive' ? ' inactive' : ''}`} key={collector.id}>
               <div className="collector-card__header">
-                <span className="collector-card__dot" aria-hidden="true" />
                 <span className={`collector-status-badge${collector.status === 'inactive' ? ' inactive' : ''}`}>
                   {collector.status}
                 </span>
@@ -310,7 +308,6 @@ const Collector = () => {
                     src={resolveCollectorImage(collector)}
                     alt={collector.driver}
                     className="collector-img"
-                    style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '50%' }}
                   />
                 </div>
                 <div className="collector-info">
@@ -343,17 +340,6 @@ const Collector = () => {
                 type="button"
                 className="collector-view-details"
                 onClick={() => setDetailsModal({ open: true, collector })}
-                style={{
-                  width: "100%",
-                  borderRadius: 12,
-                  border: "1px solid #cde3d4",
-                  background: "#f6fbf7",
-                  color: "#2f6b4a",
-                  fontWeight: 600,
-                  padding: "10px 0",
-                  marginTop: 30,
-                  transition: "all 0.2s ease",
-                }}
               >
                 View Details
               </button>
@@ -448,7 +434,6 @@ const Collector = () => {
                       aria-required="true"
                       aria-invalid={!!formErrors.password}
                       className={formErrors.password ? "input-error" : ""}
-                      style={{ width: '100%', paddingRight: 36 }}
                     />
                     <span
                       className="password-toggle-btn"
@@ -475,14 +460,14 @@ const Collector = () => {
                   <label>Crew Members</label>
                   <div className="crew-chips-container">
                     {(form.crew || []).map((c, idx) => (
-                      <div key={idx} className="crew-chip" style={{ display: 'flex', gap: 8 }}>
+                      <div key={idx} className="crew-chip">
                         <input
                           type="text"
                           value={c.firstName}
                           onChange={e => handleCrewChange(idx, 'firstName', e.target.value)}
                           aria-label={`Crew member ${idx + 1} first name`}
                           placeholder="First Name"
-                          style={{ width: 90 }}
+                          className="crew-chip-input"
                         />
                         <input
                           type="text"
@@ -490,7 +475,7 @@ const Collector = () => {
                           onChange={e => handleCrewChange(idx, 'lastName', e.target.value)}
                           aria-label={`Crew member ${idx + 1} last name`}
                           placeholder="Last Name"
-                          style={{ width: 90 }}
+                          className="crew-chip-input"
                         />
                         {(form.crew || []).length > 1 && (
                           <button
@@ -521,36 +506,22 @@ const Collector = () => {
                 </div>
               </div>
               <div className="modal-form-right">
-                <div className="img-preview-container" style={{ position: 'relative' }}>
+                <div className="img-preview-container">
                   <div className="img-preview placeholder">
-                    <FaCamera style={{ fontSize: '1.5rem', color: '#bbb' }} />
-                    <span style={{ fontSize: '0.8rem', marginTop: '4px' }}>No Image</span>
+                    <FaCamera className="img-preview-placeholder-icon" />
+                    <span className="img-preview-placeholder-text">No Image</span>
                   </div>
                   <div
-                    style={{
-                      position: 'absolute',
-                      bottom: -8,
-                      right: 115,
-                      background: '#fff',
-                      borderRadius: '50%',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                      padding: 3,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 24,
-                      height: 24,
-                      cursor: 'pointer',
-                    }}
+                    className="img-upload-button"
                     onClick={() => fileInputRef.current && fileInputRef.current.click()}
                   >
-                    <FaCamera style={{ fontSize: '0.95rem', color: '#4B8B3B' }} />
+                    <FaCamera className="img-upload-button-icon" />
                   </div>
                   <input
                     type="file"
                     accept="image/*"
                     ref={fileInputRef}
-                    style={{ display: 'none' }}
+                    className="hidden-file-input"
                   />
                 </div>
               </div>
@@ -574,10 +545,10 @@ const Collector = () => {
         <div className="collector-modal-bg">
           <div className="collector-modal">
             <h2>Collector Added!</h2>
-            <div style={{ textAlign: 'center', margin: '18px 0' }}>
+            <div className="success-modal-content">
               The collector has been added successfully.
             </div>
-            <div style={{ textAlign: 'center' }}>
+            <div className="success-modal-actions">
               <button className="primary-btn" onClick={() => setSuccessModalOpen(false)}>
                 OK
               </button>
@@ -588,20 +559,19 @@ const Collector = () => {
       {/* Details Modal */}
       {detailsModal.open && detailsModal.collector && (
         <div className="collector-modal-bg">
-          <div className="collector-modal redesigned-modal" style={{ maxWidth: 560, padding: 0 }}>
-            <div className="modal-header" style={{ padding: "24px 32px", borderBottom: "1px solid #eef2ef" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div className="collector-img-wrapper" style={{ width: 64, height: 64 }}>
+          <div className="collector-modal redesigned-modal details-modal-wrapper">
+            <div className="modal-header details-modal-header">
+              <div className="details-modal-header-content">
+                <div className="collector-img-wrapper details-modal-img-wrapper">
                   <img
                     src={resolveCollectorImage(detailsModal.collector)}
                     alt={detailsModal.collector.driver}
-                    className="collector-img"
-                    style={{ borderRadius: "50%" }}
+                    className="collector-img details-modal-img"
                   />
               </div>
                 <div>
                   <p className="eyebrow-label">Driver profile</p>
-                  <h2 style={{ margin: 0 }}>
+                  <h2 className="details-modal-title">
                     {detailsModal.collector.firstName} {detailsModal.collector.lastName}
                   </h2>
                   <span className={`collector-status-badge${detailsModal.collector.status === "inactive" ? " inactive" : ""}`}>
@@ -619,15 +589,15 @@ const Collector = () => {
               </button>
             </div>
 
-            <div style={{ padding: "28px 32px" }}>
-              <div style={{ border: "1px solid #eef2ef", borderRadius: 16, padding: 16 }}>
-                <p className="collector-meta-label" style={{ marginBottom: 12 }}>
+            <div className="details-modal-body">
+              <div className="details-modal-crew-section">
+                <p className="collector-meta-label details-modal-crew-label">
                   Crew members
                 </p>
                 {(detailsModal.collector.crew || []).length === 0 ? (
                   <p className="collector-meta-value">No crew assigned</p>
                 ) : (
-                  <ul style={{ margin: 0, paddingLeft: 18, color: "#2f3c32", lineHeight: 1.6 }}>
+                  <ul className="details-modal-crew-list">
                     {detailsModal.collector.crew.map((c, i) => (
                       <li key={i}>
                         <strong>
@@ -640,7 +610,7 @@ const Collector = () => {
               </div>
             </div>
 
-            <div style={{ borderTop: "1px solid #eef2ef", padding: "18px 32px", display: "flex", justifyContent: "flex-end", gap: 12 }}>
+            <div className="details-modal-footer">
               <button className="secondary-btn" onClick={() => setDetailsModal({ open: false, collector: null })}>
                 Close
               </button>
@@ -654,11 +624,11 @@ const Collector = () => {
       {/* Edit Collector Modal */}
       {editModal.open && editModal.collector && (
         <div className="collector-modal-bg">
-          <div className="collector-modal redesigned-modal" style={{ maxWidth: 640, padding: 0 }}>
-            <div className="modal-header" style={{ borderBottom: "1px solid #f0f2ef", padding: "24px 32px" }}>
+          <div className="collector-modal redesigned-modal edit-modal-wrapper">
+            <div className="modal-header edit-modal-header">
               <div>
                 <p className="eyebrow-label">Update collector</p>
-                <h2 style={{ margin: 0 }}>{`${editModal.collector.firstName} ${editModal.collector.lastName}`}</h2>
+                <h2 className="edit-modal-title">{`${editModal.collector.firstName} ${editModal.collector.lastName}`}</h2>
               </div>
               <button
                 className="modal-close-btn"
@@ -671,8 +641,7 @@ const Collector = () => {
             </div>
 
             <form
-              className="modal-form-grid redesigned-edit-form"
-              style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 28, padding: "28px 32px" }}
+              className="modal-form-grid redesigned-edit-form edit-modal-form"
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
@@ -804,9 +773,9 @@ const Collector = () => {
 
               <div className="modal-form-right">
                 <label className="modal-form-group">Crew Members</label>
-                <div className="crew-chips-container modern" style={{ background: "transparent" }}>
+                <div className="crew-chips-container modern edit-modal-crew-container">
                   {(editModal.collector.crew || []).map((c, idx) => (
-                    <div key={idx} className="crew-chip modern" style={{ gap: 10 }}>
+                    <div key={idx} className="crew-chip modern edit-modal-crew-chip">
                       <input
                         type="text"
                         value={c.firstName}
@@ -868,7 +837,7 @@ const Collector = () => {
                 </div>
               </div>
 
-              <div className="modal-form-actions" style={{ gridColumn: "1 / -1", justifyContent: "flex-end" }}>
+              <div className="modal-form-actions edit-modal-actions">
                 <button type="button" className="secondary-btn" onClick={() => setEditModal({ open: false, collector: null })}>
                   Cancel
                 </button>
@@ -885,10 +854,10 @@ const Collector = () => {
         <div className="collector-modal-bg">
           <div className="collector-modal">
             <h2>Driver Updated!</h2>
-            <div style={{ textAlign: 'center', margin: '18px 0' }}>
+            <div className="success-modal-content">
               The driver information has been updated successfully.
             </div>
-            <div style={{ textAlign: 'center' }}>
+            <div className="success-modal-actions">
               <button className="primary-btn" onClick={() => setEditSuccessModalOpen(false)}>
                 OK
               </button>

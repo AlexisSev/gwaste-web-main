@@ -790,20 +790,20 @@ const MapTracking = ({ collectorId, userRole }) => {
             if (!t) return null;
             return (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div className="map-popup-header">
                   {t.profileImage ? (
-                    <img src={t.profileImage} alt="Driver" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                    <img src={t.profileImage} alt="Driver" className="map-popup-driver-image" />
                   ) : (
                     <span role="img" aria-label="truck">🚛</span>
                   )}
                   <strong>{t.driverName}</strong>
                 </div>
-                <div style={{ fontSize: 12, color: '#333' }}>
+                <div className="map-popup-coords">
                   <div><b>Lat:</b> {t.latitude.toFixed(5)}</div>
                   <div><b>Lng:</b> {t.longitude.toFixed(5)}</div>
                   <div><b>Last update:</b> {new Date(t.updatedAt).toLocaleString()}</div>
                 </div>
-                <div style={{ marginTop: 10, display: 'flex', gap: 8, flexDirection: 'column' }}>
+                <div className="map-popup-actions">
                   <button className="detail-btn primary" onClick={() => {
                     const marker = truckMarkersRef.current[t.id];
                     if (marker) marker.openPopup();

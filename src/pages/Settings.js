@@ -163,12 +163,12 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
         <div className="collector-modal-bg">
           <div className="collector-modal">
             <h2>{photoAction === 'delete' ? 'Photo Deleted!' : 'Photo Updated!'}</h2>
-            <div style={{ textAlign: "center", margin: "18px 0" }}>
+            <div className="settings-success-modal-content">
               {photoAction === 'delete' 
                 ? 'Your profile photo has been deleted successfully.'
                 : 'Your profile photo has been updated successfully.'}
             </div>
-            <div style={{ textAlign: "center" }}>
+            <div className="settings-success-modal-actions">
               <button
                 className="primary-btn"
                 onClick={() => setPhotoSuccessModalOpen(false)}
