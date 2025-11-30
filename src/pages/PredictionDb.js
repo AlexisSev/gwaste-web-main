@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import './PredictionDb.css';
 
 export default function PredictionDb() {
   const [predictions, setPredictions] = useState([]);
@@ -102,115 +103,38 @@ export default function PredictionDb() {
   }, []);
 
   return (
-    <div style={{
-      width: '100%',
-      padding: '20px',
-      background: '#fff',
-      borderRadius: 18,
-      boxShadow: '0 2px 8px rgba(51,106,41,0.07)'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20
-      }}>
-        <h1 style={{
-          color: '#336A29',
-          fontSize: 24,
-          fontWeight: 700,
-          margin: 0
-        }}>
+    <div className="prediction-db-container">
+      <div className="prediction-db-header">
+        <h1 className="prediction-db-title">
           📊 Waste Collection Predictions
         </h1>
-        <div style={{
-          fontSize: 14,
-          color: '#666',
-          background: '#f8f9fa',
-          padding: '4px 12px',
-          borderRadius: 20,
-          border: '1px solid #e9ecef'
-        }}>
+        <div className="prediction-db-badge">
           Based on {predictions.length} routes
         </div>
       </div>
 
       {loading ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 400,
-          flexDirection: 'column',
-          gap: 16
-        }}>
-          <div style={{
-            width: 40,
-            height: 40,
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #336A29',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
-          <p style={{ color: '#666', margin: 0 }}>Analyzing collection data...</p>
+        <div className="prediction-db-loading">
+          <div className="prediction-db-spinner" />
+          <p className="prediction-db-loading-text">Analyzing collection data...</p>
         </div>
       ) : error ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 400,
-          flexDirection: 'column',
-          gap: 16
-        }}>
-          <div style={{
-            fontSize: 48,
-            color: '#dc3545'
-          }}>
-            ⚠️
-          </div>
-          <p style={{
-            color: '#dc3545',
-            margin: 0,
-            textAlign: 'center',
-            maxWidth: 400
-          }}>
+        <div className="prediction-db-error">
+          <div className="prediction-db-error-icon">⚠️</div>
+          <p className="prediction-db-error-text">
             {error}
           </p>
           <button
             onClick={() => window.location.reload()}
-            style={{
-              background: '#336A29',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: 8,
-              cursor: 'pointer'
-            }}
+            className="prediction-db-retry-btn"
           >
             Retry
           </button>
         </div>
       ) : predictions.length === 0 ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 400,
-          flexDirection: 'column',
-          gap: 16
-        }}>
-          <div style={{
-            fontSize: 48,
-            color: '#6c757d'
-          }}>
-            📊
-          </div>
-          <p style={{
-            color: '#6c757d',
-            margin: 0,
-            textAlign: 'center'
-          }}>
+        <div className="prediction-db-empty">
+          <div className="prediction-db-empty-icon">📊</div>
+          <p className="prediction-db-empty-text">
             No prediction data available.<br />
             Add some collection records to see predictions.
           </p>
@@ -263,57 +187,28 @@ export default function PredictionDb() {
           </ResponsiveContainer>
 
           {/* Summary Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 16,
-            marginTop: 20,
-            padding: 20,
-            background: '#f8f9fa',
-            borderRadius: 12
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: 24,
-                fontWeight: 700,
-                color: '#336A29'
-              }}>
+          <div className="prediction-db-summary">
+            <div className="prediction-db-stat">
+              <div className="prediction-db-stat-value">
                 {predictions.length}
               </div>
-              <div style={{
-                fontSize: 14,
-                color: '#666'
-              }}>
+              <div className="prediction-db-stat-label">
                 Active Routes
               </div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: 24,
-                fontWeight: 700,
-                color: '#336A29'
-              }}>
+            <div className="prediction-db-stat">
+              <div className="prediction-db-stat-value">
                 {(predictions.reduce((sum, p) => sum + parseFloat(p.avg_duration), 0) / predictions.length).toFixed(1)}
               </div>
-              <div style={{
-                fontSize: 14,
-                color: '#666'
-              }}>
+              <div className="prediction-db-stat-label">
                 Avg Duration (hrs)
               </div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: 24,
-                fontWeight: 700,
-                color: '#336A29'
-              }}>
+            <div className="prediction-db-stat">
+              <div className="prediction-db-stat-value">
                 {predictions.reduce((sum, p) => sum + p.total_collections, 0)}
               </div>
-              <div style={{
-                fontSize: 14,
-                color: '#666'
-              }}>
+              <div className="prediction-db-stat-label">
                 Total Collections
               </div>
             </div>

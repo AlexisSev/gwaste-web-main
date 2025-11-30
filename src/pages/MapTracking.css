@@ -1364,3 +1364,33 @@
     max-height: 100px;
   }
 }
+
+/* ============================================
+   INLINE STYLE REPLACEMENTS - ORGANIZED
+   ============================================ */
+
+/* Popup Header */
+.map-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.map-popup-driver-image {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.map-popup-coords {
+  font-size: 12px;
+  color: #333;
+}
+
+.map-popup-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}

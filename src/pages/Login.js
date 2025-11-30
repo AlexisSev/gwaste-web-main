@@ -105,18 +105,10 @@ const Login = ({ onLogin }) => {
 
 return (
   <div className="login-split-bg">
-    <div
+    <div 
       className="login-split-left"
       style={{
-        flex: 1,
-        backgroundImage: "url('/loginpic.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        filter: "brightness(0.95)",
+        backgroundImage: `url(${process.env.PUBLIC_URL || ''}/loginpic.png)`
       }}
     />
 

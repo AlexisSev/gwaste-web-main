@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -10,6 +10,9 @@ import {
   Settings as SettingsIcon,
   Brain,
   LogOut,
+  ChevronDown,
+  ChevronRight,
+  FileText,
 } from "lucide-react";
 import "../App.css";
 
@@ -18,10 +21,13 @@ const navItems = [
   { key: "Schedule", label: "Schedule", icon: CalendarDays },
   { key: "MapTracking", label: "Map", icon: Map },
   { key: "Collector", label: "Collector", icon: UsersRound },
+];
+
+// Reports & Insights submenu items
+const reportsItems = [
   { key: "Reports", label: "Issues", icon: AlertTriangle, indicator: true },
   { key: "History", label: "History", icon: HistoryIcon },
-  { key: "RoutePerformanceAI", label: "AI Predictions", icon: Brain },
-  { key: "Settings", label: "Settings", icon: SettingsIcon },
+  { key: "RoutePerformanceAI", label: "Prediction", icon: Brain },
 ];
 
 const Sidebar = ({
@@ -32,14 +38,20 @@ const Sidebar = ({
   adminEmail = "",
   unresolvedCount = 0,
 }) => {
+  const [isReportsOpen, setIsReportsOpen] = useState(true);
   const displayName = (adminName && adminName.trim()) || adminEmail || "Admin";
   const secondaryLabel =
     adminName && adminEmail && adminEmail !== adminName ? adminEmail : "";
 
+  // Check if any reports item is active
+  const isReportsActive = reportsItems.some(item => item.key === currentPage);
+
   return (
     <aside className="app-sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-logo-mark">G</div>
+        <div className="sidebar-logo-mark">
+          <img src="/logo.png" alt="G-Waste Logo" className="sidebar-logo-img" />
+        </div>
         <div>
           <p>{displayName}</p>
           <small>G-Waste Admin</small>
@@ -55,14 +67,68 @@ const Sidebar = ({
             onClick={() => onNavigate(key)}
           >
             <span className="sidebar-link__icon">
-              <Icon size={18} />
+              <Icon size={16} />
             </span>
             <span>{label}</span>
-            {key === "Reports" && unresolvedCount > 0 ? (
-              <span className="sidebar-badge">{unresolvedCount}</span>
-            ) : indicator && <span className="sidebar-indicator" />}
+            {indicator && <span className="sidebar-indicator" />}
           </button>
         ))}
+
+        {/* Reports & Insights Collapsible Section */}
+        <div className="sidebar-group">
+          <button
+            type="button"
+            className={`sidebar-group-header ${isReportsActive ? "active" : ""}`}
+            onClick={() => setIsReportsOpen(!isReportsOpen)}
+          >
+            <span className="sidebar-link__icon">
+              <FileText size={16} />
+            </span>
+            <span>Reports & Insights</span>
+            <span className="sidebar-group-chevron">
+              {isReportsOpen ? (
+                <ChevronDown size={14} />
+              ) : (
+                <ChevronRight size={14} />
+              )}
+            </span>
+          </button>
+          
+          {isReportsOpen && (
+            <div className="sidebar-group-content">
+              {reportsItems.map(({ key, label, icon: Icon, indicator }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`sidebar-link sidebar-link--nested ${
+                    currentPage === key ? "active" : ""
+                  }`}
+                  onClick={() => onNavigate(key)}
+                >
+                  <span className="sidebar-link__icon">
+                    <Icon size={18} />
+                  </span>
+                  <span>{label}</span>
+                  {key === "Reports" && unresolvedCount > 0 ? (
+                    <span className="sidebar-badge">{unresolvedCount}</span>
+                  ) : indicator && <span className="sidebar-indicator" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Settings */}
+        <button
+          type="button"
+          className={`sidebar-link ${currentPage === "Settings" ? "active" : ""}`}
+          onClick={() => onNavigate("Settings")}
+        >
+          <span className="sidebar-link__icon">
+            <SettingsIcon size={16} />
+          </span>
+          <span>Settings</span>
+        </button>
       </nav>
 
       <div className="sidebar-footer">

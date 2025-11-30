@@ -1,0 +1,147 @@
+/* ============================================
+   PREDICTION DB PAGE - ORGANIZED STYLES
+   ============================================ */
+
+.prediction-db-container {
+  width: 100%;
+  padding: 20px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(51, 106, 41, 0.07);
+}
+
+.prediction-db-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.prediction-db-title {
+  color: #336A29;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.prediction-db-badge {
+  font-size: 14px;
+  color: #666;
+  background: #f8f9fa;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #e9ecef;
+}
+
+/* Loading State */
+.prediction-db-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prediction-db-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #336A29;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.prediction-db-loading-text {
+  color: #666;
+  margin: 0;
+}
+
+/* Error State */
+.prediction-db-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prediction-db-error-icon {
+  font-size: 48px;
+  color: #dc3545;
+}
+
+.prediction-db-error-text {
+  color: #dc3545;
+  margin: 0;
+  text-align: center;
+  max-width: 400px;
+}
+
+.prediction-db-retry-btn {
+  background: #336A29;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.prediction-db-retry-btn:hover {
+  background: #2a5621;
+}
+
+/* Empty State */
+.prediction-db-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prediction-db-empty-icon {
+  font-size: 48px;
+  color: #6c757d;
+}
+
+.prediction-db-empty-text {
+  color: #6c757d;
+  margin: 0;
+  text-align: center;
+}
+
+/* Summary Stats */
+.prediction-db-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.prediction-db-stat {
+  text-align: center;
+}
+
+.prediction-db-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #336A29;
+}
+
+.prediction-db-stat-label {
+  font-size: 14px;
+  color: #666;
+}
+

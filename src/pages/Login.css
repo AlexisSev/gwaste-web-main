@@ -6,6 +6,13 @@
 
 .login-split-left {
   flex: 1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: brightness(0.95);
   min-height: 100vh;
 }
 

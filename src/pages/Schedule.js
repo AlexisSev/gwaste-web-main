@@ -885,127 +885,76 @@ const Schedule = () => {
         eyebrow="Route planning"
         title="Schedule"
         subtitle="Plan and monitor each collection route and crew rotation."
-        action={
-          <Button
-            variant="contained"
-            onClick={openAddModal}
-            style={{
-              background: "#336A29",
-              color: "#fff",
-              borderRadius: 20,
-              fontWeight: 600,
-              fontSize: "1.1rem",
-              padding: "10px 32px",
-            }}
-          >
-            Add Schedule
-          </Button>
-        }
       />
-      {/* Schedules Table */}
-      <div style={{ padding: "0 40px 40px 40px" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#fff",
-            borderRadius: 12,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          }}
+      {/* Add Schedule Button */}
+      <div className="schedule-actions-bar">
+        <button
+          type="button"
+          className="schedule-add-btn"
+          onClick={openAddModal}
         >
-          <thead>
-            <tr style={{ background: "#f7f7d9" }}>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" , color: "#346a26"}}>
-                Route
-              </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26"  }}>
-                Driver
-              </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
-                Crew
-              </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
-                Barangays
-              </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
-                Time
-              </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
-                Kind of Garbage
-              </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
-                Frequency
-              </th>
-              {/* <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
-                Day Off
-              </th> */}
-              <th
-                style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}
-              ></th>
-            </tr>
-          </thead>
-          <tbody>
-            {routes.map((route) => (
-              <tr key={route.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                <td style={{ padding: 10 }}>{route.route}</td>
-                <td style={{ padding: 10 }}>{route.driver}</td>
-                <td style={{ padding: 10 }}>
-                  {route.crew &&
-                    route.crew
-                      .filter(Boolean)
-                      .map((member) =>
-                        typeof member === "string"
-                          ? member
-                          : [member.firstName, member.lastName]
-                              .filter(Boolean)
-                              .join(" ")
-                      )
-                      .join(" • ")}
-                </td>
-                <td style={{ padding: 10 }}>
-                  {route.areas && route.areas.filter(Boolean).join(" • ")}
-                </td>
-                <td style={{ padding: 10, whiteSpace: "nowrap" }}>
-                  {formatTime12h(route.time)}
-                  {route.end_time ? ` - ${formatTime12h(route.end_time)}` : ""}
-                </td>
-                <td style={{ padding: 10, paddingLeft: 35 }}>{route.type}</td>
-                <td style={{ padding: 10 }}>{route.frequency || route.frequency || "—"}</td>
-                {/* <td style={{ padding: 10 }}>
-                  {route.dayoff || route.dayoff || route.day_off || "—"}
-                </td> */}
-                <td style={{ padding: 10 }}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    style={{
-                      color: "#4B8B3B",
-                      borderColor: "#4B8B3B",
-                      fontWeight: 600,
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        backgroundColor: "#4B8B3B",
-                        color: "#fff",
-                        borderColor: "#4B8B3B",
-                      },
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = "#4B8B3B";
-                      e.target.style.color = "#fff";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = "transparent";
-                      e.target.style.color = "#4B8B3B";
-                    }}
-                    onClick={() => openEditModal(route)}
-                  >
-                    Edit
-                  </Button>
-                </td>
+          
+          Add Schedule
+        </button>
+      </div>
+      {/* Schedules Table */}
+      <div className="schedule-table-container">
+        <div className="schedule-table-wrapper">
+          <table className="schedule-table">
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th>Driver</th>
+                <th>Crew</th>
+                <th>Barangays</th>
+                <th>Time</th>
+                <th>Kind of Garbage</th>
+                <th>Frequency</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {routes.map((route) => (
+                <tr key={route.id}>
+                  <td>{route.route}</td>
+                  <td>{route.driver}</td>
+                  <td>
+                    {route.crew &&
+                      route.crew
+                        .filter(Boolean)
+                        .map((member) =>
+                          typeof member === "string"
+                            ? member
+                            : [member.firstName, member.lastName]
+                                .filter(Boolean)
+                                .join(" ")
+                        )
+                        .join(" • ")}
+                  </td>
+                  <td>
+                    {route.areas && route.areas.filter(Boolean).join(" • ")}
+                  </td>
+                  <td className="schedule-table-time">
+                    {formatTime12h(route.time)}
+                    {route.end_time ? ` - ${formatTime12h(route.end_time)}` : ""}
+                  </td>
+                  <td>{route.type}</td>
+                  <td>{route.frequency || route.frequency || "—"}</td>
+                  <td>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      className="schedule-table-edit-btn"
+                      onClick={() => openEditModal(route)}
+                    >
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       <Dialog open={modalOpen} onClose={closeModal}>
         <DialogTitle
@@ -1419,12 +1368,12 @@ const Schedule = () => {
         <div className="collector-modal-bg">
           <div className="collector-modal">
             <h2>{successModalType === "update" ? "Schedule Updated!" : "Schedule Added!"}</h2>
-            <div style={{ textAlign: "center", margin: "18px 0" }}>
+            <div className="schedule-success-modal-content">
               {successModalType === "update" 
                 ? "The schedule has been updated successfully."
                 : "The schedule has been added successfully."}
             </div>
-            <div style={{ textAlign: "center" }}>
+            <div className="schedule-success-modal-actions">
               <button
                 className="primary-btn"
                 onClick={() => setSuccessModalOpen(false)}

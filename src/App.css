@@ -28,15 +28,23 @@ body {
 }
 
 .page-hero {
-  background: linear-gradient(180deg, #f9fcf6 0%, #f3f7ef 100%);
+  position: sticky;
+  top: 100px;
+  z-index: 100;
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 28px;
   padding: 28px 32px;
+  padding-top: 30px;
   box-shadow: 0 20px 40px rgba(18, 62, 32, 0.08);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 24px;
+  margin-top: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .page-hero-text {
@@ -115,14 +123,15 @@ body {
 }
 
 .sidebar-logo-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-logo-img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
 }
 
 .sidebar-brand p {
@@ -138,7 +147,7 @@ body {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   flex: 1;
 }
 
@@ -146,20 +155,20 @@ body {
   border: none;
   background: transparent;
   color: rgba(255, 255, 255, 0.85);
-  padding: 12px 14px;
-  border-radius: 16px;
+  padding: 8px 12px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.95rem;
+  gap: 10px;
+  font-size: 0.875rem;
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
 }
 
 .sidebar-link__icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -208,6 +217,99 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Collapsible Sidebar Group - Shadcn Inspired */
+.sidebar-group {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.sidebar-group-header {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 8px 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+.sidebar-group-header:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-group-header.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.sidebar-group-chevron {
+  margin-left: auto;
+  margin-right: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  transition: transform 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-group-header:hover .sidebar-group-chevron {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sidebar-group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sidebar-link--nested {
+  padding: 8px 12px;
+  margin-left: 0;
+  font-size: 0.875rem;
+  border-left: 2px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.sidebar-link--nested:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-link--nested.active {
+  background: rgba(255, 255, 255, 0.18);
+  border-left-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-link--nested.active .sidebar-link__icon {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding-right: 8px;
@@ -244,7 +346,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: transparent;
   color: #fff;
-  padding: 10px 14px;
+  padding: 5px 8px;
   border-radius: 16px;
   display: flex;
   align-items: center;
