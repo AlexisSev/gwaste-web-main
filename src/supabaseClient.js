@@ -5,4 +5,8 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Make supabase and VAPID key available globally for testing
+window.supabase = supabase;
+window.VAPID_PUBLIC_KEY = 'BGOikRSq1Had4nL5ZkWgHcm4YLQQykCzlAQys82UEj-5aSM2HGlvVlxBNT1W9evucYj7M0ECF6emJnGGYA1TjnU';
+
 

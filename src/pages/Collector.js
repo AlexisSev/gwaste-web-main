@@ -2,8 +2,10 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
-import { FaCamera, FaEdit, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaCamera, FaEdit, FaEye, FaEyeSlash, FaEnvelope, FaPhone } from 'react-icons/fa';
 import "./Collector.css";
+import PageHero from "../components/PageHero";
+import defaultProfileImage from "../Cooked.jpg";
 
 // Helper to remove all routes for a driver
 // eslint-disable-next-line no-unused-vars
@@ -13,6 +15,29 @@ async function removeRoutesForDriver(driverName) {
     .delete()
     .eq("driver", driverName);
 }
+
+const formatDate = (value) => {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
+};
+
+const resolveCollectorImage = (collector) => {
+  const rawImage =
+    collector?.profile_image ||
+    collector?.profileImage ||
+    collector?.profile_image_base64 ||
+    collector?.profileImageBase64;
+
+  if (!rawImage) return defaultProfileImage;
+  if (typeof rawImage === "string") {
+    if (rawImage.startsWith("http")) return rawImage;
+    if (rawImage.startsWith("data:image")) return rawImage;
+    return `data:image/jpeg;base64,${rawImage}`;
+  }
+  return defaultProfileImage;
+};
 
 const Collector = () => {
   const [search, setSearch] = useState("");
@@ -119,7 +144,9 @@ const Collector = () => {
     if (!validate()) { setAddLoading(false); return; }
     
     try {
+      // Fetch the latest collectors from Supabase for duplicate check
       const { data: latestCollectors } = await supabase.from("collectors").select("*");
+      // Fetch all routes to check crew assignments
       const { data: allRoutes } = await supabase.from("routes").select("*");
       
       // Gather existing names by role (case-insensitive)
@@ -216,24 +243,33 @@ const Collector = () => {
 
   return (
     <div className="collector-mgmt-container">
-      <div className="collector-mgmt-header">
-        <h1>Collectors</h1>
-        <div className="collector-mgmt-status-toggle">
-          <span
-            className={activeTab === "active" ? "active" : "inactive"}
-            onClick={() => setActiveTab("active")}
-          >
-            ● active
-          </span>
-          <span> • </span>
-          <span
-            className={activeTab === "inactive" ? "inactive active" : "inactive"}
-            onClick={() => setActiveTab("inactive")}
-          >
-            ● inactive
-          </span>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="Collections team"
+        title="Collectors"
+        subtitle="Manage driver profiles, crews, and route assignments."
+        action={
+          <div className="collector-hero-actions">
+            <div className="collector-mgmt-status-toggle">
+              <span
+                className={activeTab === "active" ? "active" : "inactive"}
+                onClick={() => setActiveTab("active")}
+              >
+                ● active
+              </span>
+              <span> • </span>
+              <span
+                className={activeTab === "inactive" ? "inactive active" : "inactive"}
+                onClick={() => setActiveTab("inactive")}
+              >
+                ● inactive
+              </span>
+            </div>
+            <button className="collector-mgmt-add-btn" onClick={openAddModal}>
+              Add Collector
+            </button>
+          </div>
+        }
+      />
       <div className="collector-mgmt-actions">
         <input
           className="collector-mgmt-search"
@@ -242,56 +278,88 @@ const Collector = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <button className="collector-mgmt-add-btn" onClick={openAddModal}>
-          Add Collector
-        </button>
       </div>
       <div className="collector-mgmt-grid">
-        {drivers.map((collector) => (
-          <div className={`collector-card${collector.status === 'inactive' ? ' inactive' : ''}`} key={collector.id}>
-            <span className={`collector-status-badge${collector.status === 'inactive' ? ' inactive' : ''}`}>
-              ● {collector.status}
-            </span>
-            <div className="collector-img-wrapper">
-              <img
-                src={require('../Cooked.jpg')}
-                alt={collector.driver}
-                className="collector-img"
-                style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '50%' }}
-              />
+        {drivers.map((collector) => {
+          const fullName = collector.driver || `${collector.firstName || ""} ${collector.lastName || ""}`.trim() || "Unnamed collector";
+          const roleLabel = collector.role || "Collection Driver";
+          const department = collector.department || "Operations Team";
+          const hired = formatDate(collector.created_at);
+          const phone = collector.contact || "No contact number";
+
+          return (
+            <div className={`collector-card${collector.status === 'inactive' ? ' inactive' : ''}`} key={collector.id}>
+              <div className="collector-card__header">
+                <span className="collector-card__dot" aria-hidden="true" />
+                <span className={`collector-status-badge${collector.status === 'inactive' ? ' inactive' : ''}`}>
+                  {collector.status}
+                </span>
+                <button
+                  type="button"
+                  className="collector-edit-btn"
+                  onClick={() => setEditModal({ open: true, collector })}
+                >
+                  <FaEdit />
+                  Edit
+                </button>
+              </div>
+
+              <div className="collector-card__identity">
+                <div className="collector-img-wrapper">
+                  <img
+                    src={resolveCollectorImage(collector)}
+                    alt={collector.driver}
+                    className="collector-img"
+                    style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '50%' }}
+                  />
+                </div>
+                <div className="collector-info">
+                  <div className="collector-name">{fullName}</div>
+                  <div className="collector-role">{roleLabel}</div>
+                </div>
+              </div>
+
+              <div className="collector-card__meta">
+                <div>
+                  <p className="collector-meta-label">Department</p>
+                  <p className="collector-meta-value">{department}</p>
+                </div>
+                <div>
+                  <p className="collector-meta-label">Date Hired</p>
+                  <p className="collector-meta-value">{hired}</p>
+                </div>
+              </div>
+
+              <div className="collector-card__contact">
+                <div className="contact-line">
+                  <span className="contact-icon">
+                    <FaPhone size={14} />
+                  </span>
+                  <span>{phone}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="collector-view-details"
+                onClick={() => setDetailsModal({ open: true, collector })}
+                style={{
+                  width: "100%",
+                  borderRadius: 12,
+                  border: "1px solid #cde3d4",
+                  background: "#f6fbf7",
+                  color: "#2f6b4a",
+                  fontWeight: 600,
+                  padding: "10px 0",
+                  marginTop: 30,
+                  transition: "all 0.2s ease",
+                }}
+              >
+                View Details
+              </button>
             </div>
-            <div
-              className="collector-edit-btn green-edit-btn"
-              onClick={() => setEditModal({ open: true, collector })}
-              style={{
-                marginTop: 8,
-                marginRight: 10,
-                background: '#4B8B3B',
-                borderRadius: '50%',
-                width: 32,
-                height: 32,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(51,106,41,0.10)',
-                transition: 'background 0.2s',
-              }}
-            >
-              <FaEdit style={{ color: '#fff', fontSize: '1.1rem' }} />
-            </div>
-            <div className="collector-info">
-              <div className="collector-name">{collector.driver}</div>
-              <div className="collector-role">Driver</div>
-            </div>
-            <div
-              className="collector-view-details"
-              onClick={() => setDetailsModal({ open: true, collector })}
-            >
-              View Details
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {/* Add Collector Modal */}
       {addModalOpen && (
@@ -520,32 +588,64 @@ const Collector = () => {
       {/* Details Modal */}
       {detailsModal.open && detailsModal.collector && (
         <div className="collector-modal-bg">
-          <div className="collector-modal" style={{ maxWidth: 420, borderRadius: 20, boxShadow: '0 8px 32px rgba(56,109,44,0.13)', padding: 32 }}>
-            <h2 style={{ color: '#386D2C', textAlign: 'center', marginBottom: 18 }}>Driver Profile</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div style={{ background: '#f7f7f7', borderRadius: 14, padding: 18, boxShadow: '0 2px 8px rgba(51,106,41,0.07)' }}>
-                <div style={{ fontWeight: 700, fontSize: 17, color: '#386D2C', marginBottom: 6 }}>Driver Information</div>
-                <div style={{ marginBottom: 6 }}><b>Name:</b> {detailsModal.collector.firstName} {detailsModal.collector.lastName}</div>
-                <div style={{ marginBottom: 6 }}><b>Contact:</b> {detailsModal.collector.contact}</div>
-                <div style={{ marginBottom: 6 }}><b>Status:</b> <span style={{ color: detailsModal.collector.status === 'inactive' ? '#dc3545' : '#386D2C', fontWeight: 600 }}>{detailsModal.collector.status}</span></div>
-                <div style={{ marginBottom: 6 }}><b>Role:</b> Driver</div>
+          <div className="collector-modal redesigned-modal" style={{ maxWidth: 560, padding: 0 }}>
+            <div className="modal-header" style={{ padding: "24px 32px", borderBottom: "1px solid #eef2ef" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div className="collector-img-wrapper" style={{ width: 64, height: 64 }}>
+                  <img
+                    src={resolveCollectorImage(detailsModal.collector)}
+                    alt={detailsModal.collector.driver}
+                    className="collector-img"
+                    style={{ borderRadius: "50%" }}
+                  />
               </div>
-              <div style={{ background: '#f7f7f7', borderRadius: 14, padding: 18, boxShadow: '0 2px 8px rgba(51,106,41,0.07)' }}>
-                <div style={{ fontWeight: 700, fontSize: 17, color: '#386D2C', marginBottom: 6 }}>Crew Members</div>
-                <ul style={{ margin: 0, paddingLeft: 18 }}>
-                  {detailsModal.collector.crew && detailsModal.collector.crew.map((c, i) => (
-                    <li key={i} style={{ marginBottom: 4, fontSize: 15 }}><b>{c.firstName} {c.lastName}</b></li>
-                  ))}
-                </ul>
+                <div>
+                  <p className="eyebrow-label">Driver profile</p>
+                  <h2 style={{ margin: 0 }}>
+                    {detailsModal.collector.firstName} {detailsModal.collector.lastName}
+                  </h2>
+                  <span className={`collector-status-badge${detailsModal.collector.status === "inactive" ? " inactive" : ""}`}>
+                    {detailsModal.collector.status}
+                  </span>
               </div>
             </div>
-            <div style={{ marginTop: 24, textAlign: "center" }}>
               <button
-                className="primary-btn"
-                style={{ minWidth: 90 }}
+                className="modal-close-btn"
+                aria-label="Close profile modal"
+                type="button"
                 onClick={() => setDetailsModal({ open: false, collector: null })}
               >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: "28px 32px" }}>
+              <div style={{ border: "1px solid #eef2ef", borderRadius: 16, padding: 16 }}>
+                <p className="collector-meta-label" style={{ marginBottom: 12 }}>
+                  Crew members
+                </p>
+                {(detailsModal.collector.crew || []).length === 0 ? (
+                  <p className="collector-meta-value">No crew assigned</p>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: 18, color: "#2f3c32", lineHeight: 1.6 }}>
+                    {detailsModal.collector.crew.map((c, i) => (
+                      <li key={i}>
+                        <strong>
+                          {c.firstName} {c.lastName}
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <div style={{ borderTop: "1px solid #eef2ef", padding: "18px 32px", display: "flex", justifyContent: "flex-end", gap: 12 }}>
+              <button className="secondary-btn" onClick={() => setDetailsModal({ open: false, collector: null })}>
                 Close
+              </button>
+              <button className="primary-btn" onClick={() => setEditModal({ open: true, collector: detailsModal.collector })}>
+                Edit profile
               </button>
             </div>
           </div>
@@ -554,9 +654,25 @@ const Collector = () => {
       {/* Edit Collector Modal */}
       {editModal.open && editModal.collector && (
         <div className="collector-modal-bg">
-          <div className="collector-modal">
-            <h2>Edit Driver & Crew</h2>
+          <div className="collector-modal redesigned-modal" style={{ maxWidth: 640, padding: 0 }}>
+            <div className="modal-header" style={{ borderBottom: "1px solid #f0f2ef", padding: "24px 32px" }}>
+              <div>
+                <p className="eyebrow-label">Update collector</p>
+                <h2 style={{ margin: 0 }}>{`${editModal.collector.firstName} ${editModal.collector.lastName}`}</h2>
+              </div>
+              <button
+                className="modal-close-btn"
+                aria-label="Close Edit Collector Modal"
+                type="button"
+                onClick={() => setEditModal({ open: false, collector: null })}
+              >
+                ×
+              </button>
+            </div>
+
             <form
+              className="modal-form-grid redesigned-edit-form"
+              style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 28, padding: "28px 32px" }}
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
@@ -621,69 +737,112 @@ const Collector = () => {
                 }
               }}
             >
-              <div style={{ marginBottom: 16 }}>
+              <div className="modal-form-left">
+                <div className="modal-form-group">
                 <label>Status</label>
                 <select
                   value={editModal.collector.status}
-                  onChange={e => setEditModal(modal => ({ ...modal, collector: { ...modal.collector, status: e.target.value } }))}
-                  style={{ width: '100%', padding: 7, borderRadius: 7, marginTop: 4 }}
+                    onChange={(e) =>
+                      setEditModal((modal) => ({
+                        ...modal,
+                        collector: { ...modal.collector, status: e.target.value },
+                      }))
+                    }
+                    className="collector-select"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
-              <div style={{ marginBottom: 16 }}>
+
+                <div className="modal-form-group">
                 <label>Contact Number</label>
                 <input
                   type="text"
-                  value={editModal.collector.contact || ''}
-                  onChange={e => setEditModal(modal => ({ ...modal, collector: { ...modal.collector, contact: e.target.value } }))}
+                    value={editModal.collector.contact || ""}
+                    onChange={(e) =>
+                      setEditModal((modal) => ({
+                        ...modal,
+                        collector: { ...modal.collector, contact: e.target.value },
+                      }))
+                    }
                   required
                   placeholder="Contact Number"
-                  style={{ width: '100%', padding: 7, borderRadius: 7, marginTop: 4 }}
                 />
               </div>
+
               <div className="modal-form-group">
-                <label>Crew Members</label>
-                <div className="crew-chips-container">
+                  <label>Driver Name</label>
+                  <div className="modal-name-grid">
+                    <input
+                      type="text"
+                      value={editModal.collector.firstName || ""}
+                      onChange={(e) =>
+                        setEditModal((modal) => ({
+                          ...modal,
+                          collector: { ...modal.collector, firstName: e.target.value },
+                        }))
+                      }
+                      placeholder="First name"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={editModal.collector.lastName || ""}
+                      onChange={(e) =>
+                        setEditModal((modal) => ({
+                          ...modal,
+                          collector: { ...modal.collector, lastName: e.target.value },
+                        }))
+                      }
+                      placeholder="Last name"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-form-right">
+                <label className="modal-form-group">Crew Members</label>
+                <div className="crew-chips-container modern" style={{ background: "transparent" }}>
                   {(editModal.collector.crew || []).map((c, idx) => (
-                    <div key={idx} className="crew-chip" style={{ display: 'flex', gap: 8 }}>
+                    <div key={idx} className="crew-chip modern" style={{ gap: 10 }}>
                       <input
                         type="text"
                         value={c.firstName}
-                        onChange={e => setEditModal(modal => {
+                        onChange={(e) =>
+                          setEditModal((modal) => {
                           const crew = [...(modal.collector.crew || [])];
                           crew[idx].firstName = e.target.value;
                           return { ...modal, collector: { ...modal.collector, crew } };
-                        })}
-                        required={idx === 0}
-                        aria-label={`Crew member ${idx + 1} first name`}
+                          })
+                        }
                         placeholder="First Name"
-                        style={{ width: 90 }}
                       />
                       <input
                         type="text"
                         value={c.lastName}
-                        onChange={e => setEditModal(modal => {
+                        onChange={(e) =>
+                          setEditModal((modal) => {
                           const crew = [...(modal.collector.crew || [])];
                           crew[idx].lastName = e.target.value;
                           return { ...modal, collector: { ...modal.collector, crew } };
-                        })}
-                        required={idx === 0}
-                        aria-label={`Crew member ${idx + 1} last name`}
+                          })
+                        }
                         placeholder="Last Name"
-                        style={{ width: 90 }}
                       />
                       {(editModal.collector.crew || []).length > 1 && (
                         <button
                           type="button"
                           className="chip-remove-btn"
                           aria-label={`Remove crew member ${idx + 1}`}
-                          onClick={() => setEditModal(modal => {
+                          onClick={() =>
+                            setEditModal((modal) => {
                             const crew = [...(modal.collector.crew || [])];
                             crew.splice(idx, 1);
                             return { ...modal, collector: { ...modal.collector, crew } };
-                          })}
+                            })
+                          }
                         >
                           ×
                         </button>
@@ -694,16 +853,27 @@ const Collector = () => {
                     type="button"
                     className="chip-add-btn"
                     aria-label="Add crew member"
-                    onClick={() => setEditModal(modal => ({ ...modal, collector: { ...modal.collector, crew: [...(modal.collector.crew || []), { firstName: '', lastName: '' }] } }))}
+                    onClick={() =>
+                      setEditModal((modal) => ({
+                        ...modal,
+                        collector: {
+                          ...modal.collector,
+                          crew: [...(modal.collector.crew || []), { firstName: "", lastName: "" }],
+                        },
+                      }))
+                    }
                   >
-                    + Add
+                    + Add crew
                   </button>
                 </div>
               </div>
-              <div style={{ marginTop: 16, textAlign: "right" }}>
-                <button type="submit" className="primary-btn">Save</button>
+
+              <div className="modal-form-actions" style={{ gridColumn: "1 / -1", justifyContent: "flex-end" }}>
                 <button type="button" className="secondary-btn" onClick={() => setEditModal({ open: false, collector: null })}>
                   Cancel
+                </button>
+                <button type="submit" className="primary-btn">
+                  Save changes
                 </button>
               </div>
             </form>

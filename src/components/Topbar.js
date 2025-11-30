@@ -1,33 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import "../App.css";
-import logo from "../Profile.jpg";
-import SearchIcon from '@mui/icons-material/Search';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import { useState, useEffect } from "react";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 
-const Topbar = ({ unresolvedCount, collectionNotifications = [], adminName = 'Admin' }) => {
+const Topbar = ({
+  unresolvedCount,
+  collectionNotifications = [],
+  adminName = "Admin",
+  adminEmail = "Supervisor",
+  onNotificationRead = () => {},
+}) => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  // Request notification permission on mount
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
+// Normalize notifications received from parent (already real-time data)
+const notifications = collectionNotifications.map((notification, index) => ({
+  id: notification.id || `collection-${index}`,
+  type: notification.type || "collection",
+  title: notification.title || "Collection Completed",
+  message: notification.message || "A garbage collection was completed.",
+  timestamp: notification.timestamp ? new Date(notification.timestamp) : new Date(),
+  read: Boolean(notification.read)
+}));
 
-  const unreadCount = collectionNotifications.filter(n => !n.read).length;
+const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = (notificationId) => {
-    // In a real app, you'd update this in a database
-    // For now, we'll just update local state
-    setNotificationsOpen(false);
+    onNotificationRead(notificationId);
   };
 
   const formatTimeAgo = (timestamp) => {
     const now = new Date();
-    const diff = now - timestamp;
+    const eventTime = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    const diff = now - eventTime;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -37,79 +42,60 @@ const Topbar = ({ unresolvedCount, collectionNotifications = [], adminName = 'Ad
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
   };
+
   return (
-    <div className="topbar custom-topbar">
-      <div className="topbar-left">
-        <img src={logo} alt="G-Waste Logo" className="topbar-logo" style={{ height: 38, marginRight: 18 }} />
-        <div>
-          <div className="topbar-welcome">Welcome,</div>
-          <div className="topbar-username">{adminName}</div>
-        </div>
-      </div>
-      <div className="topbar-center">
-        <div className="topbar-search-container">
-          <SearchIcon className="topbar-search-icon" />
-          <input
-            className="topbar-search"
-            type="text"
-            placeholder="Find something"
-          />
-        </div>
-      </div>
-      <div className="topbar-right">
-        <HelpOutlineIcon className="topbar-icon" style={{ cursor: 'pointer' }} onClick={() => setHelpOpen(true)} />
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <NotificationsNoneIcon
-            className="topbar-icon"
-            style={{ cursor: 'pointer' }}
+    <>
+      <div className="topbar custom-topbar">
+        <div className="topbar-actions">
+          <button className="topbar-icon-btn" type="button" onClick={() => setHelpOpen(true)} aria-label="Help">
+            <HelpOutlineIcon />
+          </button>
+          <button
+            className="topbar-icon-btn"
+            type="button"
             onClick={() => setNotificationsOpen(!notificationsOpen)}
-          />
-          {unreadCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: -4,
-              right: -4,
-              background: '#e74c3c',
-              color: '#fff',
-              borderRadius: '50%',
-              minWidth: 18,
-              height: 18,
-              fontSize: 12,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              padding: '0 5px',
-              zIndex: 2,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.12)'
-            }}>{unreadCount}</span>
-          )}
+            aria-label="Notifications"
+          >
+            <NotificationsNoneIcon />
+            {(unreadNotificationCount + unresolvedCount) > 0 && (
+              <span className="topbar-notif-count">{unreadNotificationCount + unresolvedCount}</span>
+            )}
+          </button>
+          <div className="topbar-user-chip">
+            <span>{adminName}</span>
+            <small>{adminEmail || "Supervisor"}</small>
+          </div>
         </div>
       </div>
+
       {helpOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.25)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            padding: 32,
-            maxWidth: 420,
-            width: '90vw',
-            boxShadow: '0 8px 32px rgba(51,106,41,0.13)',
-            position: 'relative',
-          }}>
-            <h2 style={{ color: '#386D2C', marginBottom: 18 }}>Help & Quick Tips</h2>
-            <ul style={{ color: '#222', fontSize: 16, lineHeight: 1.7, marginBottom: 18 }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.25)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: 32,
+              maxWidth: 420,
+              width: "90vw",
+              boxShadow: "0 8px 32px rgba(51,106,41,0.13)",
+              position: "relative",
+            }}
+          >
+            <h2 style={{ color: "#386D2C", marginBottom: 18 }}>Help & Quick Tips</h2>
+            <ul style={{ color: "#222", fontSize: 16, lineHeight: 1.7, marginBottom: 18 }}>
               <li>To <b>add a collector</b>, click the <b>Add Collector</b> button and fill out the form.</li>
               <li>To <b>edit a driver or crew</b>, click the <b>Edit</b> button on the collector card.</li>
               <li>To <b>view details</b> of a collector, click <b>View Details</b> on their card.</li>
@@ -120,18 +106,18 @@ const Topbar = ({ unresolvedCount, collectionNotifications = [], adminName = 'Ad
             </ul>
             <button
               style={{
-                background: '#4B8B3B',
-                color: '#fff',
-                border: 'none',
+                background: "#4B8B3B",
+                color: "#fff",
+                border: "none",
                 borderRadius: 8,
-                padding: '10px 28px',
+                padding: "10px 28px",
                 fontWeight: 600,
                 fontSize: 16,
-                cursor: 'pointer',
+                cursor: "pointer",
                 marginTop: 8,
-                display: 'block',
-                marginLeft: 'auto',
-                marginRight: 'auto',
+                display: "block",
+                marginLeft: "auto",
+                marginRight: "auto",
               }}
               onClick={() => setHelpOpen(false)}
             >
@@ -200,17 +186,32 @@ const Topbar = ({ unresolvedCount, collectionNotifications = [], adminName = 'Ad
               overflowY: 'auto',
             }}>
 
-              {collectionNotifications.length === 0 ? (
+              {unresolvedCount > 0 && (
+                <div style={{
+                  padding: '16px 24px',
+                  borderBottom: '1px solid #f5f5f5',
+                  background: '#fff7e6'
+                }}>
+                  <div style={{ fontWeight: 600, color: '#b25e09', marginBottom: 4 }}>
+                    {unresolvedCount} unresolved report{unresolvedCount > 1 ? 's' : ''}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#7a4a0f' }}>
+                    Review pending issues under the Issues section.
+                  </div>
+                </div>
+              )}
+
+              {notifications.length === 0 ? (
                 <div style={{
                   padding: '40px 24px',
                   textAlign: 'center',
                   color: '#666',
                   fontSize: 16,
                 }}>
-                  No notifications yet
+                  No collection notifications yet
                 </div>
               ) : (
-                collectionNotifications.map((notification) => (
+                notifications.map((notification) => (
                   <div
                     key={notification.id}
                     style={{
@@ -267,7 +268,7 @@ const Topbar = ({ unresolvedCount, collectionNotifications = [], adminName = 'Ad
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaUser, FaLock, FaEye, FaEyeSlash, FaGoogle } from "react-icons/fa";
 import "./Login.css";
 
 const Login = ({ onLogin }) => {
@@ -9,6 +9,42 @@ const Login = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkExistingSession = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user && isMounted) {
+          onLogin(user.user_metadata?.name || user.email || "User", user.email);
+        }
+      } catch {
+        // Ignore session lookup errors – user can still log in manually
+      }
+    };
+
+    checkExistingSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user && isMounted) {
+        onLogin(
+          session.user.user_metadata?.name || session.user.email || "User",
+          session.user.email
+        );
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [onLogin]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,29 +82,52 @@ const Login = ({ onLogin }) => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}`,
+        },
+      });
+      if (oauthError) {
+        setError(oauthError.message || "Google sign-in failed. Try again.");
+        setLoading(false);
+      }
+      // On success, Supabase will redirect; auth listener above will handle post-login
+    } catch (err) {
+      setError("Google sign-in failed. Please try again.");
+      setLoading(false);
+    }
+  };
+
 return (
-  <div className="login-split-bg" style={{ display: "flex", minHeight: "100vh" }}>
+  <div className="login-split-bg">
     <div
       className="login-split-left"
       style={{
         flex: 1,
-        backgroundImage: "url('/loginpic.png')", 
-        backgroundSize: "cover",                 
+        backgroundImage: "url('/loginpic.png')",
+        backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        filter: "brightness(0.95)",              
+        filter: "brightness(0.95)",
       }}
-    >
-    </div>
+    />
 
     {/* RIGHT SIDE (Login Form Card) */}
     <div className="login-split-right">
       <div className="login-card">
-        <h2 className="login-title">Log in</h2>
-        <p className="login-subtitle">Access your admin dashboard</p>
+        <div className="login-header">
+          <h1>Welcome back!</h1>
+          <p>Access real-time updates, handle community reports, and manage system operations with ease.
+          </p>
+        </div>
 
         {error && <div className="error-message">{error}</div>}
 
@@ -87,75 +146,55 @@ return (
             />
           </div>
 
-    <div className="input-icon-group" style={{ position: "relative" }}>
-        <span
-          className="input-icon"
-          style={{
-            position: "absolute",
-            left: "12px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            color: "#2e7d6b",
-          }}
-        >
-          <FaLock />
-        </span>
+          <div className="input-icon-group password-group">
+            <span className="input-icon"><FaLock /></span>
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={credentials.password}
+              onChange={handleInputChange}
+              required
+              disabled={loading}
+              autoComplete="current-password"
+            />
 
-      <input
-        type={showPassword ? "text" : "password"}
-        name="password"
-        placeholder="Password"
-        value={credentials.password}
-        onChange={handleInputChange}
-        required
-        disabled={loading}
-        autoComplete="current-password"
-        style={{
-          width: "100%",
-          padding: "10px 40px 10px 36px", // space for icons
-          borderRadius: "8px",
-          outline: "none",
-        }}
-      />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              disabled={loading}
+              className="password-toggle-btn"
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
 
-      <button
-        type="button"
-        onClick={() => setShowPassword(!showPassword)}
-        disabled={loading}
-        style={{
-          position: "absolute",
-          right: "12px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          color: "#555",
-        }}
-      >
-        {showPassword ? <FaEyeSlash /> : <FaEye />}
-      </button>
-    </div>
-
+          <div className="login-form-links">
+            <a href="#" className="forgot-link">Forgot password?</a>
+          </div>
 
           <button type="submit" className="login-btn-modern" disabled={loading}>
             {loading ? "Logging In..." : "Log In"}
           </button>
         </form>
 
-        {/* Divider
-        <p style={{ fontSize: "0.9rem", color: "#777", margin: "12px 0" }}>
-          or log in with
-        </p> */}
+        <div className="login-divider">
+          <span>or continue with</span>
+        </div>
 
-        {/* Social Icons
         <div className="login-social-icons">
-          <a href="#"><i className="fab fa-google"></i></a>
-          <a href="#"><i className="fab fa-facebook-f"></i></a>
-          <a href="#"><i className="fab fa-github"></i></a>
-        </div> */}
+          <button
+            type="button"
+            className="login-social-button"
+            aria-label="Sign in with Google"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+          >
+            <FaGoogle />
+          </button>
+        </div>
 
-       
+        
       </div>
     </div>
   </div>

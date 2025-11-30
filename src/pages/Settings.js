@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Settings.css";
 import ProfileImg from "../logo.svg";
+import PageHero from "../components/PageHero";
 
 const tabs = [
   { label: "Account" },
@@ -21,6 +22,8 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changeEmail, setChangeEmail] = useState(adminEmail);
   const [message, setMessage] = useState('');
+  const [photoSuccessModalOpen, setPhotoSuccessModalOpen] = useState(false);
+  const [photoAction, setPhotoAction] = useState(''); // 'change' or 'delete'
 
   useEffect(() => {
     setProfileImg(localStorage.getItem('profileImg') || ProfileImg);
@@ -33,6 +36,8 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
     reader.onload = (ev) => {
       setProfileImg(ev.target.result);
       localStorage.setItem('profileImg', ev.target.result);
+      setPhotoAction('change');
+      setPhotoSuccessModalOpen(true);
     };
     reader.readAsDataURL(file);
   };
@@ -40,6 +45,8 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
   const handleDeletePhoto = () => {
     setProfileImg(ProfileImg);
     localStorage.removeItem('profileImg');
+    setPhotoAction('delete');
+    setPhotoSuccessModalOpen(true);
   };
 
   const handleEditInfo = (e) => {
@@ -74,7 +81,11 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
 
   return (
     <div className="settings-container">
-      <h1 className="settings-title">Settings</h1>
+      <PageHero
+        eyebrow="Account"
+        title="Settings"
+        subtitle="Manage your profile, login credentials, and notification preferences."
+      />
 
       <div className="settings-tabs">
         {tabs.map((tab, idx) => (
@@ -146,6 +157,28 @@ const Settings = ({ adminName = '', adminEmail = '' }) => {
       )}
 
       {message && <div className="settings-message">{message}</div>}
+      
+      {/* Photo Success Modal */}
+      {photoSuccessModalOpen && (
+        <div className="collector-modal-bg">
+          <div className="collector-modal">
+            <h2>{photoAction === 'delete' ? 'Photo Deleted!' : 'Photo Updated!'}</h2>
+            <div style={{ textAlign: "center", margin: "18px 0" }}>
+              {photoAction === 'delete' 
+                ? 'Your profile photo has been deleted successfully.'
+                : 'Your profile photo has been updated successfully.'}
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <button
+                className="primary-btn"
+                onClick={() => setPhotoSuccessModalOpen(false)}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,0 +1,625 @@
+/* Route Performance AI - Shadcn-inspired Design */
+
+.route-ai-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Loading State */
+.route-ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.route-ai-spinner {
+  color: #336A29;
+  animation: spin 1s linear infinite;
+}
+
+.route-ai-loading p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error State */
+.route-ai-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  text-align: center;
+}
+
+.route-ai-error-icon {
+  color: #dc2626;
+  margin-bottom: 8px;
+}
+
+.route-ai-error h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.route-ai-error p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+}
+
+/* Header */
+.route-ai-header {
+  margin-bottom: 24px;
+}
+
+.route-ai-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.route-ai-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.route-ai-title-icon {
+  color: #336A29;
+  flex-shrink: 0;
+}
+
+.route-ai-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.route-ai-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.route-ai-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.route-ai-button-primary {
+  background: #336A29;
+  color: white;
+}
+
+.route-ai-button-primary:hover {
+  background: #2a5621;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(51, 106, 41, 0.2);
+}
+
+.route-ai-button-icon {
+  padding: 10px 16px;
+}
+
+/* Statistics Grid */
+.route-ai-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.route-ai-stat-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.2s ease;
+}
+
+.route-ai-stat-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.route-ai-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.route-ai-stat-icon-primary {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.route-ai-stat-icon-success {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.route-ai-stat-icon-info {
+  background: #f0f9ff;
+  color: #0ea5e9;
+}
+
+.route-ai-stat-icon-warning {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.route-ai-stat-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.route-ai-stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.route-ai-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.route-ai-stat-value-warning {
+  color: #dc2626;
+}
+
+/* Card Component */
+.route-ai-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.route-ai-card-header {
+  margin-bottom: 20px;
+}
+
+.route-ai-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.route-ai-card-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.route-ai-chart-container {
+  margin-top: 20px;
+}
+
+/* Table */
+.route-ai-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.route-ai-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: white;
+}
+
+.route-ai-table thead {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.route-ai-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.route-ai-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
+}
+
+.route-ai-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.route-ai-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.route-ai-table td {
+  padding: 16px;
+  color: #1f2937;
+  vertical-align: middle;
+}
+
+/* Badges */
+.route-ai-route-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.route-ai-score-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.route-ai-score-high {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.route-ai-score-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.route-ai-score-low {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.route-ai-score-predicted {
+  background: #336A29;
+  color: white;
+}
+
+.route-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.route-ai-badge-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.route-ai-badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.route-ai-badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.route-ai-ml-indicator {
+  display: inline-flex;
+  align-items: center;
+  color: #667eea;
+  cursor: help;
+}
+
+/* Recommendations Section */
+.route-ai-recommendation-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.route-ai-recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.route-ai-recommendation {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.route-ai-recommendation:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.route-ai-recommendation-critical {
+  border-left: 4px solid #dc2626;
+  background: #fef2f2;
+}
+
+.route-ai-recommendation-warning {
+  border-left: 4px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.route-ai-recommendation-info {
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
+}
+
+.route-ai-recommendation-success {
+  border-left: 4px solid #22c55e;
+  background: #f0fdf4;
+}
+
+.route-ai-recommendation-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.route-ai-recommendation-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.route-ai-recommendation-critical .route-ai-recommendation-icon-wrapper {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.route-ai-recommendation-warning .route-ai-recommendation-icon-wrapper {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.route-ai-recommendation-info .route-ai-recommendation-icon-wrapper {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.route-ai-recommendation-success .route-ai-recommendation-icon-wrapper {
+  background: #d1fae5;
+  color: #22c55e;
+}
+
+.route-ai-recommendation-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.route-ai-recommendation-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.route-ai-recommendation-message {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.route-ai-priority-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.route-ai-priority-high {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.route-ai-priority-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.route-ai-priority-low {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.route-ai-recommendation-suggestions {
+  margin: 16px 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+}
+
+.route-ai-suggestions-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.route-ai-suggestions-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+
+.route-ai-suggestions-list li {
+  font-size: 13px;
+  color: #4b5563;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.route-ai-suggestions-list li:last-child {
+  margin-bottom: 0;
+}
+
+.route-ai-recommendation-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.route-ai-action-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.route-ai-action-text {
+  font-size: 13px;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .route-ai-recommendations-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ML Badge */
+.route-ai-ml-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Training Banner */
+.route-ai-training-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.route-ai-spin {
+  animation: spin 1s linear infinite;
+}
+
+.route-ai-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .route-ai-header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .route-ai-button {
+    width: 100%;
+  }
+
+  .route-ai-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .route-ai-table-wrapper {
+    font-size: 12px;
+  }
+
+  .route-ai-table th,
+  .route-ai-table td {
+    padding: 10px 12px;
+  }
+}
+

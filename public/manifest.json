@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "G-Waste",
+  "name": "G-Waste Admin Dashboard",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#386D2C",
+  "background_color": "#ffffff",
+  "gcm_sender_id": "103953800507"
 }

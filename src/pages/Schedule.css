@@ -2,7 +2,7 @@
   max-width: 100%;
   margin: 0;
   padding: 0;
-  background: #f7f7d9;
+  background: #f5f7f2;
   font-family: 'Quicksand', Arial, sans-serif;
   min-height: 100vh;
 }
@@ -23,7 +23,7 @@
 }
 
 .schedule-edit-btn {
-  background: #386D2C;
+  background: #103f1b;
   color: #fff;
   border: none;
   border-radius: 20px;
@@ -37,11 +37,11 @@
 }
 
 .schedule-edit-btn:hover {
-  background: #2c5221;
+  background: #103f1b;
 }
 
 .schedule-calendar-outer {
-  background: #f7f7d9;
+  background: #fff;
   border-radius: 16px;
   margin: 0 auto 40px auto;
   max-width: 98%;
@@ -81,7 +81,7 @@
 }
 
 .schedule-calendar-nav-btn {
-  background: #386D2C !important;
+  background: #103f1b !important;
   color: white !important;
   border-radius: 50% !important;
   width: 44px !important;
@@ -95,8 +95,8 @@
   font-size: 17px;
   padding: 10px 22px;
   border-radius: 8px;
-  border: 1px solid #D6D6A7;
-  background: #F7F7D9;
+  border: 1px solid #dfe3d1;
+  background: #fff;
   color: #4B5B2A;
   font-family: inherit;
   font-weight: 500;
@@ -105,7 +105,7 @@
 }
 
 .schedule-calendar-rect {
-  background: #f7f7d9;
+  background: #fff;
   border-radius: 16px;
   margin: 0 auto 32px auto;
   max-width: 100%;
@@ -120,7 +120,7 @@
 .schedule-calendar-header-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1.5px solid #d6d6a7;
+  border-bottom: 1.5px solid #103f1b;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   background: none;
@@ -133,7 +133,7 @@
   color: #4b5b2a;
   padding: 16px 0 14px 0;
   text-align: center;
-  border-right: 1px solid #ececc2;
+  border-right: 1px solid #103f1b;
 }
 
 .schedule-calendar-header-cell:last-child {
@@ -206,7 +206,7 @@
 
 .calendar-schedule-chip {
   background: #eaf6ea;
-  color: #386D2C;
+  color: #103f1b;
   border-radius: 8px;
   padding: 3px 6px;
   font-size: 0.8rem;

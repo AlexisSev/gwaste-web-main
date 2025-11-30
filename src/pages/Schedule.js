@@ -24,6 +24,7 @@ import { Close } from "@mui/icons-material";
 import dayjs from "dayjs";
 import "./Schedule.css";
 import { supabase } from "../supabaseClient";
+import PageHero from "../components/PageHero";
 
 const emptyRoute = {
   route: "",
@@ -40,8 +41,12 @@ const emptyRoute = {
 const ROUTE_NUMBERS = ["1", "2", "3", "4", "5", "6"];
 // Predefined schedules by route for autofill when adding a new schedule
 const ROUTE_PRESETS = {
-  1: {
-    crew: ["Agostine Estrera Jr", "Roberto Del Carmen", "Joey Cantay"],
+  "1": {
+    crew: [
+      "Agostine Estrera Jr",
+      "Roberto Del Carmen",
+      "Joey Cantay",
+    ],
     areas: ["Don Pedro", "Polambato", "Cayang", "TayTayan", "Cogon"],
     time: "07:00",
     endTime: "15:00",
@@ -49,17 +54,32 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Sunday",
   },
-  2: {
-    crew: ["Ricky Francisco", "Rex Desuyo", "Carlito Tampus"],
-    areas: ["Sto. Nino", "Sudlonon", "Lourdes", "Carbon", "Pandan", "Bungtod"],
+  "2": {
+    crew: [
+      "Ricky Francisco",
+      "Rex Desuyo",
+      "Carlito Tampus",
+    ],
+    areas: [
+      "Sto. Nino",
+      "Sudlonon",
+      "Lourdes",
+      "Carbon",
+      "Pandan",
+      "Bungtod",
+    ],
     time: "07:00",
     endTime: "15:00",
     type: "Dili Malata",
     frequency: "Daily",
     dayOff: "Sunday",
   },
-  3: {
-    crew: ["Noli Dahunan", "Anthony Remulta", "Dominador Antopina"],
+  "3": {
+    crew: [
+      "Noli Dahunan",
+      "Anthony Remulta",
+      "Dominador Antopina",
+    ],
     areas: [
       "ARAPAL Farm",
       "Bungtod (Maharat & Laray)",
@@ -72,8 +92,12 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Sunday",
   },
-  4: {
-    crew: ["Joel Ursal Sr", "Radne Bedrijo", "Jermin Andrade"],
+  "4": {
+    crew: [
+      "Joel Ursal Sr",
+      "Radne Bedrijo",
+      "Jermin Andrade",
+    ],
     areas: [
       "A/B Cogon",
       "Siocon",
@@ -88,8 +112,12 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Saturday",
   },
-  5: {
-    crew: ["Winful Catampatan", "Orgie Menoria", "Wilmor Viray"],
+  "5": {
+    crew: [
+      "Winful Catampatan",
+      "Orgie Menoria",
+      "Wilmor Viray",
+    ],
     areas: [
       "Public Market",
       "Cantecson",
@@ -104,9 +132,16 @@ const ROUTE_PRESETS = {
     frequency: "Daily",
     dayOff: "Saturday",
   },
-  6: {
-    crew: ["Arnel Casiano", "Marjun Ylanan", "Jade Silad"],
-    areas: ["Gairan", "Nailon"],
+  "6": {
+    crew: [
+      "Arnel Casiano",
+      "Marjun Ylanan",
+      "Jade Silad",
+    ],
+    areas: [
+      "Gairan",
+      "Nailon",
+    ],
     time: "07:00",
     endTime: "15:00",
     type: "Dili Malata",
@@ -194,6 +229,111 @@ function getMinEndTime(startTime) {
   return startTime;
 }
 
+// Helper function to convert technical errors to user-friendly messages
+function getUserFriendlyError(error, context = "operation") {
+  if (!error) return "Something went wrong. Please try again.";
+  
+  // Extract error message
+  let errorMessage = "";
+  if (typeof error === "string") {
+    errorMessage = error.toLowerCase();
+  } else if (error?.message) {
+    errorMessage = error.message.toLowerCase();
+  } else {
+    errorMessage = String(error).toLowerCase();
+  }
+
+  // Network/connection errors
+  if (
+    errorMessage.includes("network") ||
+    errorMessage.includes("fetch") ||
+    errorMessage.includes("connection") ||
+    errorMessage.includes("failed to fetch")
+  ) {
+    return "Unable to connect to the server. Please check your internet connection and try again.";
+  }
+
+  // Authentication/permission errors
+  if (
+    errorMessage.includes("auth") ||
+    errorMessage.includes("unauthorized") ||
+    errorMessage.includes("permission") ||
+    errorMessage.includes("forbidden") ||
+    errorMessage.includes("row-level security")
+  ) {
+    return "You don't have permission to perform this action. Please log in again or contact your administrator.";
+  }
+
+  // Duplicate/unique constraint errors
+  if (
+    errorMessage.includes("duplicate") ||
+    errorMessage.includes("unique") ||
+    errorMessage.includes("already exists") ||
+    errorMessage.includes("violates unique constraint")
+  ) {
+    if (context.includes("route")) {
+      return "This route number is already in use. Please select a different route number.";
+    }
+    return "This item already exists. Please use a different value.";
+  }
+
+  // Not found errors
+  if (
+    errorMessage.includes("not found") ||
+    errorMessage.includes("does not exist")
+  ) {
+    return "The requested schedule could not be found. It may have been deleted.";
+  }
+
+  // Foreign key/constraint errors
+  if (
+    errorMessage.includes("foreign key") ||
+    errorMessage.includes("constraint") ||
+    errorMessage.includes("violates foreign key")
+  ) {
+    return "This action cannot be completed because the schedule is linked to other data. Please remove the links first.";
+  }
+
+  // Validation errors
+  if (
+    errorMessage.includes("required") ||
+    errorMessage.includes("invalid") ||
+    errorMessage.includes("validation")
+  ) {
+    return "Please check your input and make sure all required fields are filled correctly.";
+  }
+
+  // Timeout errors
+  if (errorMessage.includes("timeout")) {
+    return "The request took too long. Please try again.";
+  }
+
+  // Database errors
+  if (errorMessage.includes("postgres") || errorMessage.includes("database")) {
+    if (context.includes("add") || context.includes("insert")) {
+      return "Unable to save the schedule. Please check your input and try again.";
+    }
+    if (context.includes("update") || context.includes("edit")) {
+      return "Unable to update the schedule. Please try again.";
+    }
+    return "Unable to complete the operation. Please try again in a moment.";
+  }
+
+  // Default context-specific messages
+  if (context.includes("add") || context.includes("insert")) {
+    return "Unable to add the schedule. Please check your input and try again.";
+  }
+  if (context.includes("update") || context.includes("edit")) {
+    return "Unable to update the schedule. Please try again.";
+  }
+  if (context.includes("fetch") || context.includes("load")) {
+    return "Unable to load data. Please refresh the page.";
+  }
+
+  // Generic fallback
+  return "Something went wrong. Please try again.";
+}
+
 const Schedule = () => {
   const [routes, setRoutes] = useState([]);
   const [, setSelectedRoute] = useState(null);
@@ -210,6 +350,7 @@ const Schedule = () => {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [infoRoute] = useState(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successModalType, setSuccessModalType] = useState("add"); // "add" or "update"
 
   useEffect(() => {
     let isMounted = true;
@@ -219,10 +360,15 @@ const Schedule = () => {
         const { data, error } = await supabase
           .from("routes")
           .select("*")
-          .order("route", { ascending: true });
+          .order("route");
 
         if (error) {
           console.error("Error fetching routes:", error);
+          setSnackbar({
+            open: true,
+            message: getUserFriendlyError(error, "load schedules"),
+            severity: "error",
+          });
           setLoading(false);
           return;
         }
@@ -239,9 +385,14 @@ const Schedule = () => {
           }
           setLoading(false);
         }
-      } catch (err) {
-        console.error("Error fetching routes:", err);
+      } catch (error) {
+        console.error("Error in fetchRoutes:", error);
         if (isMounted) {
+          setSnackbar({
+            open: true,
+            message: getUserFriendlyError(error, "load schedules"),
+            severity: "error",
+          });
           setLoading(false);
         }
       }
@@ -263,7 +414,8 @@ const Schedule = () => {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+    // eslint-disable-next-line
+  }, []); // selectedRoute is intentionally not included to avoid infinite loop
 
   const [collectors, setCollectors] = useState([]);
   useEffect(() => {
@@ -319,16 +471,75 @@ const Schedule = () => {
   );
 
   const availableCrewOptions = Array.from(
-    new Set([
-      ...(allCrew || [])
-        .map((m) => normalizeCrewName(m))
-        .filter(Boolean)
-        // Hide crew already assigned to other routes when adding a new route
-        // For edit mode, still hide crew assigned to other routes but allow the ones already on this route via union below
-        .filter((name) => !assignedCrewOnOtherRoutes.has(name)),
-      // Always include currently selected crew so they remain visible
-      ...(form.crew || []).filter(Boolean),
-    ])
+    new Set(
+      [
+        ...((allCrew || [])
+          .map((m) => normalizeCrewName(m))
+          .filter(Boolean)
+          // Hide crew already assigned to other routes when adding a new route
+          // For edit mode, still hide crew assigned to other routes but allow the ones already on this route via union below
+          .filter((name) => !assignedCrewOnOtherRoutes.has(name))),
+        // Always include currently selected crew so they remain visible
+        ...((form.crew || []).filter(Boolean)),
+      ]
+    )
+  );
+
+  // Compute available driver options: hide those already assigned to other routes
+  const normalizeDriverName = (driver) => (driver || "").trim().toLowerCase();
+
+  const assignedDriversOnOtherRoutes = new Set(
+    (routes || [])
+      .filter((r) => !editId || r.id !== editId)
+      .map((r) => normalizeDriverName(r.driver))
+      .filter(Boolean)
+  );
+
+  // Build a map of normalized names to original names for proper casing
+  const driverNameMap = new Map();
+  allDrivers.forEach((driver) => {
+    const normalized = normalizeDriverName(driver);
+    if (!driverNameMap.has(normalized)) {
+      driverNameMap.set(normalized, driver);
+    }
+  });
+
+  const availableDriverOptions = Array.from(
+    new Set(
+      [
+        ...((allDrivers || [])
+          .map((d) => normalizeDriverName(d))
+          .filter(Boolean)
+          // Hide drivers already assigned to other routes when adding a new route
+          // For edit mode, still hide drivers assigned to other routes but allow the one already on this route via union below
+          .filter((name) => !assignedDriversOnOtherRoutes.has(name))),
+        // Always include currently selected driver so they remain visible
+        ...(form.driver ? [normalizeDriverName(form.driver)] : []),
+      ]
+    )
+  )
+    .map((normalized) => {
+      // Find the original driver name (with proper casing) from the map or use form.driver as fallback
+      return driverNameMap.get(normalized) || form.driver;
+    })
+    .filter(Boolean);
+
+  // Compute available route numbers: hide those already assigned to other routes
+  const assignedRouteNumbers = new Set(
+    (routes || [])
+      .filter((r) => !editId || r.id !== editId)
+      .map((r) => String(r.route || "").trim())
+      .filter(Boolean)
+  );
+
+  const availableRouteNumbers = Array.from(
+    new Set(
+      [
+        ...ROUTE_NUMBERS.filter((num) => !assignedRouteNumbers.has(num)),
+        // Always include currently selected route number so it remains visible when editing
+        ...(form.route ? [form.route] : []),
+      ]
+    )
   );
 
   // Form validation
@@ -336,10 +547,20 @@ const Schedule = () => {
     const errors = {};
     if (!form.route) errors.route = "Route number is required";
     if (!form.driver) errors.driver = "Driver is required";
-    if (!form.crew.filter((c) => c.trim()).length)
+    const crewArray = Array.isArray(form.crew) ? form.crew : [];
+    if (!crewArray.filter((c) => {
+      const crewStr = typeof c === "string" ? c : (c?.firstName && c?.lastName ? `${c.firstName} ${c.lastName}` : String(c));
+      return crewStr.trim();
+    }).length) {
       errors.crew = "At least one crew member";
-    if (!form.areas.filter((a) => a.trim()).length)
+    }
+    const areasArray = Array.isArray(form.areas) ? form.areas : [];
+    if (!areasArray.filter((a) => {
+      const areaStr = typeof a === "string" ? a : String(a);
+      return areaStr.trim();
+    }).length) {
       errors.areas = "At least one area";
+    }
     if (!form.time) errors.time = "Collection start time is required";
     if (!form.endTime) errors.endTime = "Collection end time is required";
     // Additional time validation: if start is AM, end must be PM
@@ -373,13 +594,17 @@ const Schedule = () => {
     setModalOpen(true);
   };
   const openEditModal = (route) => {
-    setForm({ 
+    // Normalize database fields (snake_case) to form fields (camelCase)
+    const normalizedForm = { 
       ...route, 
-      endTime: route.end_time, // Map end_time back to endTime
-      dayOff: route.dayoff, // Map dayoff back to dayOff
-      crew: [...(route.crew || [])], // Restore crew data
-      areas: [...(route.areas || [])] 
-    });
+      crew: [...(route.crew || [])], 
+      areas: [...(route.areas || [])],
+      endTime: route.end_time || route.endTime || "",
+      dayOff: route.dayoff || route.dayOff || "",
+    };
+    console.log("📝 Opening edit modal for route:", route.id);
+    console.log("📋 Normalized form data:", normalizedForm);
+    setForm(normalizedForm);
     setEditId(route.id);
     setFormErrors({});
     setModalOpen(true);
@@ -435,25 +660,6 @@ const Schedule = () => {
       });
       return;
     }
-    if (name === "driver") {
-      setForm((prev) => {
-        const next = { ...prev, driver: value };
-        // Auto-fill crew when driver is selected (only when adding new schedule)
-        if (!editId && value) {
-          const selectedCollector = collectors.find(c => c.driver === value);
-          if (selectedCollector && selectedCollector.crew) {
-            const crewNames = selectedCollector.crew.map((member) =>
-              typeof member === "string"
-                ? member
-                : [member.firstName, member.lastName].filter(Boolean).join(" ")
-            ).filter(Boolean);
-            next.crew = crewNames;
-          }
-        }
-        return next;
-      });
-      return;
-    }
     if (name === "endTime") {
       // Prevent AM selection when start time is AM
       if (form.time && isAM(form.time) && isAM(value)) {
@@ -467,19 +673,26 @@ const Schedule = () => {
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    console.log("🚀 handleSubmit called, editId:", editId);
+    console.log("📝 Form data:", form);
+    const isValid = validate();
+    console.log("✅ Validation result:", isValid);
+    if (!isValid) {
+      console.log("❌ Validation failed, errors:", formErrors);
+      return;
+    }
 
     try {
       // Check for crew assignment conflicts
-      const { data: allRoutes, error: fetchError } = await supabase
+      const { data: allRoutes, error: routesError } = await supabase
         .from("routes")
         .select("*");
 
-      if (fetchError) {
-        console.error("Error fetching routes:", fetchError);
+      if (routesError) {
+        console.error("Error fetching routes for conflict check:", routesError);
         setSnackbar({
           open: true,
-          message: "Error checking crew assignments",
+          message: getUserFriendlyError(routesError, "check conflicts"),
           severity: "error",
         });
         return;
@@ -490,9 +703,28 @@ const Schedule = () => {
         newCrewMembers = newCrewMembers.split(",").map((c) => c.trim());
       }
       newCrewMembers = newCrewMembers.filter((c) => c); // removes blanks
+      // Prevent assigning same driver to multiple routes (unless editing same record)
+      const driverName = (form.driver || "").trim().toLowerCase();
+      if (driverName) {
+        const conflictingDriverRoute = allRoutes.find(
+          (route) =>
+            route.driver &&
+            route.driver.trim().toLowerCase() === driverName &&
+            (!editId || route.id !== editId)
+        );
+        if (conflictingDriverRoute) {
+          setSnackbar({
+            open: true,
+            message: `Driver "${form.driver}" is already assigned to Route ${conflictingDriverRoute.route}. Please select a different driver or edit that route instead.`,
+            severity: "error",
+          });
+          return;
+        }
+      }
+
       // Check if any crew members are already assigned to other routes
       const assignedCrewMembers = [];
-      for (const route of allRoutes || []) {
+      for (const route of allRoutes) {
         // Skip the current route if editing
         if (editId && route.id === editId) continue;
 
@@ -530,59 +762,93 @@ const Schedule = () => {
       if (coords.length === 1) {
         coords = [coords[0], coords[0]];
       }
-      // Clean areas to remove empty/whitespace-only entries
+      // Clean crew and areas to remove empty/whitespace-only entries
+      const cleanedCrew = (Array.isArray(form.crew) ? form.crew : [])
+        .map((c) => (typeof c === "string" ? c.trim() : c))
+        .filter((c) => (typeof c === "string" ? c.length > 0 : !!c));
       const cleanedAreas = (Array.isArray(form.areas) ? form.areas : [])
         .map((a) => (typeof a === "string" ? a.trim() : a))
         .filter((a) => (typeof a === "string" ? a.length > 0 : !!a));
 
-      // Clean crew to remove empty/whitespace-only entries
-      const cleanedCrew = (Array.isArray(form.crew) ? form.crew : [])
-        .map((c) => (typeof c === "string" ? c.trim() : c))
-        .filter((c) => (typeof c === "string" ? c.length > 0 : !!c));
-
-      // Map form fields to database column names
-      const mappedData = {
-        route: form.route,
-        driver: form.driver,
-        type: form.type,
-        time: form.time,
-        end_time: form.endTime, // Map endTime to end_time
-        frequency: form.frequency,
-        areas: cleanedAreas, // This is already an array
-        crew: cleanedCrew, // Add crew field back
-        dayoff: form.dayOff, // Map dayOff to dayoff
-        coordinates: coords,
-        collectedareas: "", // Initialize as empty string
-      };
-
+      // Build payload, only including defined values
+      const normalizedPayload = {};
+      if (form.route !== undefined) normalizedPayload.route = form.route || null;
+      if (form.driver !== undefined) normalizedPayload.driver = form.driver || null;
+      if (form.type !== undefined) normalizedPayload.type = form.type || "";
+      if (form.time !== undefined) normalizedPayload.time = form.time || "";
+      if (form.endTime !== undefined || form.end_time !== undefined) {
+        normalizedPayload.end_time = form.endTime || form.end_time || "";
+      }
+      if (form.frequency !== undefined) normalizedPayload.frequency = form.frequency || "";
+      if (cleanedAreas !== undefined) normalizedPayload.areas = cleanedAreas;
+      if (coords !== undefined) normalizedPayload.coordinates = coords;
+      if (cleanedCrew !== undefined) normalizedPayload.crew = cleanedCrew;
+      if (form.dayOff !== undefined || form.dayoff !== undefined) {
+        normalizedPayload.dayoff = form.dayOff || form.dayoff || "";
+      }
+      if (form.color !== undefined && form.color) {
+        normalizedPayload.color = form.color;
+      }
       if (editId) {
+        console.log("🔄 Updating route with ID:", editId);
+        console.log("📦 Payload:", normalizedPayload);
+        
+        // Update without select to avoid RLS issues with SELECT after UPDATE
         const { error: updateError } = await supabase
           .from("routes")
-          .update(mappedData)
+          .update(normalizedPayload)
           .eq("id", editId);
 
         if (updateError) {
-          console.error("Error updating route:", updateError);
+          console.error("❌ Error updating route:", updateError);
           setSnackbar({
             open: true,
-            message: "Error updating route",
+            message: getUserFriendlyError(updateError, "update schedule"),
             severity: "error",
           });
           return;
         }
 
-        setSnackbar({
-          open: true,
-          message: "Route updated!",
-          severity: "success",
-        });
+        console.log("✅ Update query executed successfully");
+        
+        // Close the edit modal immediately
+        closeModal();
+        
+        // Show success modal immediately
+        setSuccessModalType("update");
+        setSuccessModalOpen(true);
+        
+        // Optimistically update the local state
+        setRoutes((prevRoutes) =>
+          prevRoutes.map((route) =>
+            route.id === editId ? { ...route, ...normalizedPayload } : route
+          )
+        );
+        
+        // Refetch routes in the background to ensure data consistency
+        supabase
+          .from("routes")
+          .select("*")
+          .order("route")
+          .then(({ data: refreshedRoutes, error: refreshError }) => {
+            if (refreshError) {
+              console.error("⚠️ Error refreshing routes after update:", refreshError);
+              // Silently fail - user already sees success, data will sync on next page load
+              return;
+            }
+            
+            if (refreshedRoutes) {
+              setRoutes(refreshedRoutes);
+              console.log("🔄 Routes refreshed successfully:", refreshedRoutes.length);
+            }
+          });
       } else {
         // Assign a color based on route number or random if not available
         let color = ROUTE_COLORS[parseInt(form.route, 10) - 1];
         if (!color) {
           color = ROUTE_COLORS[Math.floor(Math.random() * ROUTE_COLORS.length)];
         }
-        const routeWithColor = { ...mappedData, color };
+        const routeWithColor = { ...normalizedPayload, color };
 
         const { error: insertError } = await supabase
           .from("routes")
@@ -592,20 +858,22 @@ const Schedule = () => {
           console.error("Error adding route:", insertError);
           setSnackbar({
             open: true,
-            message: "Error adding route",
+            message: getUserFriendlyError(insertError, "add schedule"),
             severity: "error",
           });
           return;
         }
 
+        setSuccessModalType("add");
         setSuccessModalOpen(true); // Show success modal
+        closeModal();
       }
-      closeModal();
     } catch (err) {
-      console.error("Error saving route:", err);
+      console.error("Unexpected error in handleSubmit:", err);
+      const context = editId ? "update schedule" : "add schedule";
       setSnackbar({
         open: true,
-        message: "Error saving route",
+        message: getUserFriendlyError(err, context),
         severity: "error",
       });
     }
@@ -613,31 +881,27 @@ const Schedule = () => {
 
   return (
     <div className="schedule-container">
-      <div
-        className="schedule-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "20px 40px",
-        }}
-      >
-        <div></div>
-        <Button
-          variant="contained"
-          onClick={openAddModal}
-          style={{
-            background: "#336A29",
-            color: "#fff",
-            borderRadius: 20,
-            fontWeight: 600,
-            fontSize: "1.1rem",
-            padding: "10px 32px",
-          }}
-        >
-          Add Schedule
-        </Button>
-      </div>
+      <PageHero
+        eyebrow="Route planning"
+        title="Schedule"
+        subtitle="Plan and monitor each collection route and crew rotation."
+        action={
+          <Button
+            variant="contained"
+            onClick={openAddModal}
+            style={{
+              background: "#336A29",
+              color: "#fff",
+              borderRadius: 20,
+              fontWeight: 600,
+              fontSize: "1.1rem",
+              padding: "10px 32px",
+            }}
+          >
+            Add Schedule
+          </Button>
+        }
+      />
       {/* Schedules Table */}
       <div style={{ padding: "0 40px 40px 40px" }}>
         <table
@@ -651,30 +915,30 @@ const Schedule = () => {
         >
           <thead>
             <tr style={{ background: "#f7f7d9" }}>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" , color: "#346a26"}}>
                 Route
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26"  }}>
                 Driver
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
                 Crew
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
                 Barangays
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
                 Time
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
                 Kind of Garbage
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
                 Frequency
               </th>
-              <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}>
+              {/* <th style={{ padding: 12, borderBottom: "2px solid #e0e0e0", color: "#346a26" }}>
                 Day Off
-              </th>
+              </th> */}
               <th
                 style={{ padding: 12, borderBottom: "2px solid #e0e0e0" }}
               ></th>
@@ -698,7 +962,7 @@ const Schedule = () => {
                       )
                       .join(" • ")}
                 </td>
-                <td style={{ padding: 10 }}>  
+                <td style={{ padding: 10 }}>
                   {route.areas && route.areas.filter(Boolean).join(" • ")}
                 </td>
                 <td style={{ padding: 10, whiteSpace: "nowrap" }}>
@@ -706,8 +970,10 @@ const Schedule = () => {
                   {route.end_time ? ` - ${formatTime12h(route.end_time)}` : ""}
                 </td>
                 <td style={{ padding: 10, paddingLeft: 35 }}>{route.type}</td>
-                <td style={{ padding: 10 }}>{route.frequency}</td>
-                <td style={{ padding: 10 }}>{route.dayoff}</td>
+                <td style={{ padding: 10 }}>{route.frequency || route.frequency || "—"}</td>
+                {/* <td style={{ padding: 10 }}>
+                  {route.dayoff || route.dayoff || route.day_off || "—"}
+                </td> */}
                 <td style={{ padding: 10 }}>
                   <Button
                     variant="outlined"
@@ -775,7 +1041,7 @@ const Schedule = () => {
               onChange={handleFormChange}
               error={!!formErrors.route}
             >
-              {ROUTE_NUMBERS.map((num) => (
+              {availableRouteNumbers.map((num) => (
                 <MenuItem key={num} value={num}>
                   {num}
                 </MenuItem>
@@ -803,20 +1069,13 @@ const Schedule = () => {
                       key={selected}
                       label={selected}
                       size="small"
-                      onDelete={() =>
-                        setForm((prev) => ({ ...prev, driver: "" }))
-                      }
+                      onDelete={() => setForm((prev) => ({ ...prev, driver: "" }))}
                     />
                   ) : null}
                 </Box>
               )}
             >
-              {Array.from(
-                new Set([
-                  ...(allDrivers || []),
-                  ...(form.driver ? [form.driver] : []),
-                ])
-              ).map((driver) => (
+              {availableDriverOptions.map((driver) => (
                 <MenuItem key={driver} value={driver}>
                   {driver}
                 </MenuItem>
@@ -841,16 +1100,28 @@ const Schedule = () => {
               input={<OutlinedInput label="Crew Members" />}
               renderValue={(selected) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {selected.map((value) => (
-                    <Chip key={value} label={value} size="small" />
-                  ))}
+                  {selected.length > 0
+                    ? selected.map((value) => (
+                        <Chip
+                          key={value}
+                          label={value}
+                          size="small"
+                          onDelete={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              crew: (prev.crew || []).filter((c) => c !== value),
+                            }))
+                          }
+                        />
+                      ))
+                    : null}
                 </Box>
               )}
             >
-              {availableCrewOptions.map((crewMember) => (
-                <MenuItem key={crewMember} value={crewMember}>
-                  <Checkbox checked={form.crew.indexOf(crewMember) > -1} />
-                  {crewMember}
+              {availableCrewOptions.map((crew) => (
+                <MenuItem key={crew} value={crew}>
+                  <Checkbox checked={form.crew.indexOf(crew) > -1} />
+                  {crew}
                 </MenuItem>
               ))}
             </Select>
@@ -875,7 +1146,17 @@ const Schedule = () => {
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selected.length > 0
                     ? selected.map((value) => (
-                        <Chip key={value} label={value} size="small" />
+                        <Chip
+                          key={value}
+                          label={value}
+                          size="small"
+                          onDelete={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              areas: (prev.areas || []).filter((a) => a !== value),
+                            }))
+                          }
+                        />
                       ))
                     : null}
                 </Box>
@@ -946,10 +1227,13 @@ const Schedule = () => {
             value={form.endTime}
             onChange={handleFormChange}
             error={!!formErrors.endTime}
-            helperText={formErrors.endTime || (form.time && isAM(form.time))}
-            inputProps={{
+            helperText={
+              formErrors.endTime || 
+              (form.time && isAM(form.time))
+            }
+            inputProps={{ 
               min: getMinEndTime(form.time),
-              max: "23:59",
+              max: "23:59"
             }}
             onFocus={(e) => {
               // If start time is AM, restrict end time to PM only
@@ -1134,9 +1418,11 @@ const Schedule = () => {
       {successModalOpen && (
         <div className="collector-modal-bg">
           <div className="collector-modal">
-            <h2>Schedule Added!</h2>
+            <h2>{successModalType === "update" ? "Schedule Updated!" : "Schedule Added!"}</h2>
             <div style={{ textAlign: "center", margin: "18px 0" }}>
-              The schedule has been added successfully.
+              {successModalType === "update" 
+                ? "The schedule has been updated successfully."
+                : "The schedule has been added successfully."}
             </div>
             <div style={{ textAlign: "center" }}>
               <button

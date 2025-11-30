@@ -1,9 +1,10 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import "./Reports.css";
+import "./ResidentIssues.css";
+import PageHero from "../components/PageHero";
 
-const Reports = () => {
+const ResidentIssues = () => {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [reports, setReports] = useState([]);
@@ -11,6 +12,7 @@ const Reports = () => {
   const [detailsModal, setDetailsModal] = useState({ open: false, report: null });
   const [imageModal, setImageModal] = useState({ open: false, image: null });
   const [loading, setLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -93,7 +95,18 @@ const Reports = () => {
         .from("reports")
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", report.id);
-      if (error) console.error("Error updating report status:", error);
+      if (error) {
+        console.error("Error updating report status:", error);
+      } else {
+        // Show success message when marking as resolved
+        if (newStatus === "resolved") {
+          setSuccessMessage("Report marked as resolved successfully!");
+          // Auto-hide after 3 seconds
+          setTimeout(() => {
+            setSuccessMessage(null);
+          }, 3000);
+        }
+      }
     } catch (err) {
       console.error(err);
     }
@@ -236,24 +249,45 @@ const Reports = () => {
 
   return (
     <div className="reports-page">
-      <div className="reports-header">
-        <h1>Resident Reports</h1>
-        <div className="reports-tab-toggle">
-          <span
-            className={activeTab === "pending" ? "active" : "inactive"}
-            onClick={() => setActiveTab("pending")}
-          >
-            ● pending
-          </span>
-          <span> • </span>
-          <span
-            className={activeTab === "resolved" ? "inactive active" : "inactive"}
-            onClick={() => setActiveTab("resolved")}
-          >
-            ● resolved
-          </span>
+      {/* Success Toast Notification */}
+      {successMessage && (
+        <div className="success-toast">
+          <div className="success-toast-content">
+            <span className="success-icon">✓</span>
+            <span className="success-message">{successMessage}</span>
+            <button 
+              className="success-toast-close" 
+              onClick={() => setSuccessMessage(null)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      <PageHero
+        eyebrow="Community issues"
+        title="Resident Reports"
+        subtitle="Track pending and resolved submissions from residents."
+        action={
+          <div className="reports-tab-toggle">
+            <span
+              className={activeTab === "pending" ? "active" : "inactive"}
+              onClick={() => setActiveTab("pending")}
+            >
+              ● pending
+            </span>
+            <span> • </span>
+            <span
+              className={activeTab === "resolved" ? "inactive active" : "inactive"}
+              onClick={() => setActiveTab("resolved")}
+            >
+              ● resolved
+            </span>
+          </div>
+        }
+      />
 
       {/* Search Bar */}
       <div className="reports-toolbar">
@@ -293,10 +327,7 @@ const Reports = () => {
                       </span>
                     </td>
                     <td>
-                      <div
-                        className="report-img-wrapper"
-                        onClick={() => getReportImages(report).length > 0 && setImageModal({ open: true, image: getReportImages(report)[0] })}
-                      >
+                      <div className="report-img-wrapper">
                         {getReportImages(report).length > 0 ? (
                           <img src={getReportImages(report)[0]} alt="Report" className="report-img" />
                         ) : (
@@ -320,12 +351,14 @@ const Reports = () => {
                         >
                           View Details
                         </button>
-                        <button
-                          className={`status-btn ${report.status}`}
-                          onClick={() => handleToggleStatus(report)}
-                        >
-                          {report.status === "resolved" ? "⏳ Mark Pending" : "✓ Mark Resolved"}
-                        </button>
+                        {report.status === "pending" && (
+                          <button
+                            className={`status-btn ${report.status}`}
+                            onClick={() => handleToggleStatus(report)}
+                          >
+                            ✓ Mark Resolved
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -338,23 +371,65 @@ const Reports = () => {
 
       {detailsModal.open && (
         <div className="modal-overlay" onClick={() => setDetailsModal({ open: false, report: null })}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Report Details</h2>
-            <p><strong>Resident:</strong> {getResidentName(detailsModal.report)}</p>
-            <p><strong>Description:</strong> {detailsModal.report.description || "N/A"}</p>
-            <p><strong>Address:</strong> {getAddress(detailsModal.report)}</p>
-            <p><strong>Status:</strong> {detailsModal.report.status}</p>
-            <p><strong>Timestamp:</strong> {formatTimestamp(detailsModal.report.created_at || detailsModal.report.timestamp)}</p>
-            {getReportImages(detailsModal.report).length > 0 && (
-              <div className="modal-images">
-                {getReportImages(detailsModal.report).map((img, idx) => (
-                  <img key={idx} src={img} alt="Report" />
-                ))}
+          <div className="modal-shadcn" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Report Details</h2>
+              <button 
+                className="modal-close-btn" 
+                onClick={() => setDetailsModal({ open: false, report: null })}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-content">
+              <div className="modal-detail-item">
+                <span className="modal-label">Resident</span>
+                <span className="modal-value">{getResidentName(detailsModal.report)}</span>
               </div>
-            )}
-            <button className="close-btn" onClick={() => setDetailsModal({ open: false, report: null })}>
-              Close
-            </button>
+              <div className="modal-detail-item">
+                <span className="modal-label">Description</span>
+                <span className="modal-value">{detailsModal.report.description || "N/A"}</span>
+              </div>
+              <div className="modal-detail-item">
+                <span className="modal-label">Address</span>
+                <span className="modal-value">{getAddress(detailsModal.report)}</span>
+              </div>
+              <div className="modal-detail-item">
+                <span className="modal-label">Status</span>
+                <span className={`modal-status-badge ${detailsModal.report.status}`}>
+                  {detailsModal.report.status.charAt(0).toUpperCase() + detailsModal.report.status.slice(1)}
+                </span>
+              </div>
+              <div className="modal-detail-item">
+                <span className="modal-label">Timestamp</span>
+                <span className="modal-value">{formatTimestamp(detailsModal.report.created_at || detailsModal.report.timestamp)}</span>
+              </div>
+              {getReportImages(detailsModal.report).length > 0 && (
+                <div className="modal-images-section">
+                  <span className="modal-label">Images</span>
+                  <div className="modal-images">
+                    {getReportImages(detailsModal.report).map((img, idx) => (
+                      <img 
+                        key={idx} 
+                        src={img} 
+                        alt="Report" 
+                        className="modal-image-clickable"
+                        onClick={() => setImageModal({ open: true, image: img })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="modal-close-button" 
+                onClick={() => setDetailsModal({ open: false, report: null })}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -377,4 +452,4 @@ const Reports = () => {
   );
 };
 
-export default Reports;
+export default ResidentIssues;
