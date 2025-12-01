@@ -5,6 +5,7 @@ import { supabase } from "../supabaseClient";
 import { FaCamera, FaEdit, FaEye, FaEyeSlash, FaEnvelope, FaPhone } from 'react-icons/fa';
 import "./Collector.css";
 import PageHero from "../components/PageHero";
+import { Skeleton } from "../components/ui/skeleton";
 import defaultProfileImage from "../Cooked.jpg";
 
 // Helper to remove all routes for a driver
@@ -61,17 +62,24 @@ const Collector = () => {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [editSuccessModalOpen, setEditSuccessModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
 
   // Load collectors from Supabase
   useEffect(() => {
     let ignore = false;
     const fetchCollectors = async () => {
+      setLoading(true);
       const { data, error } = await supabase
         .from("collectors")
         .select("*")
         .order("driver", { ascending: true });
-      if (!error) setCollectors(data || []);
+      if (!error && !ignore) {
+        setCollectors(data || []);
+      }
+      if (!ignore) {
+        setLoading(false);
+      }
     }
     fetchCollectors();
     // Optionally, you can use Supabase Realtime for live updates
@@ -279,7 +287,47 @@ const Collector = () => {
         </div>
       </div>
       <div className="collector-mgmt-grid">
-        {drivers.map((collector) => {
+        {loading ? (
+          [...Array(6)].map((_, index) => (
+            <div key={index} className="collector-card">
+              <div className="collector-card__header">
+                <Skeleton style={{ height: '24px', width: '80px', borderRadius: '12px' }} />
+                <Skeleton style={{ height: '32px', width: '80px', borderRadius: '6px' }} />
+              </div>
+
+              <div className="collector-card__identity">
+                <div className="collector-img-wrapper">
+                  <Skeleton style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
+                </div>
+                <div className="collector-info">
+                  <Skeleton style={{ height: '20px', width: '150px', marginBottom: '8px' }} />
+                  <Skeleton style={{ height: '16px', width: '120px' }} />
+                </div>
+              </div>
+
+              <div className="collector-card__meta">
+                <div>
+                  <Skeleton style={{ height: '12px', width: '80px', marginBottom: '4px' }} />
+                  <Skeleton style={{ height: '16px', width: '100px' }} />
+                </div>
+                <div>
+                  <Skeleton style={{ height: '12px', width: '80px', marginBottom: '4px' }} />
+                  <Skeleton style={{ height: '16px', width: '100px' }} />
+                </div>
+              </div>
+
+              <div className="collector-card__contact">
+                <div className="contact-line">
+                  <Skeleton style={{ height: '14px', width: '14px', borderRadius: '2px', marginRight: '8px' }} />
+                  <Skeleton style={{ height: '16px', width: '120px' }} />
+                </div>
+              </div>
+
+              <Skeleton style={{ height: '40px', width: '100%', borderRadius: '8px', marginTop: '16px' }} />
+            </div>
+          ))
+        ) : (
+          drivers.map((collector) => {
           const fullName = collector.driver || `${collector.firstName || ""} ${collector.lastName || ""}`.trim() || "Unnamed collector";
           const roleLabel = collector.role || "Collection Driver";
           const department = collector.department || "Operations Team";
@@ -345,7 +393,8 @@ const Collector = () => {
               </button>
             </div>
           );
-        })}
+        })
+        )}
       </div>
       {/* Add Collector Modal */}
       {addModalOpen && (

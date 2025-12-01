@@ -35,3 +35,15 @@ This project aims to develop the **G-Waste** system to help residents, operation
 - 🧠 **AI-powered Predictions** – Smarter collection scheduling based on data patterns.  
 - 💬 **Chatbot Support** – Residents can ask for info, get waste management tips, or report issues.  
 - 📸 **Report with Proof** – Residents can upload images when reporting missed pickups or issues.
+
+---
+
+## 📚 Documentation
+
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** – Complete system architecture documentation including:
+  - GROQ API Chatbot Integration architecture
+  - Waste Sorting Guide architecture
+  - Database schemas
+  - API specifications
+  - Implementation roadmap
+  - Integration points with existing features

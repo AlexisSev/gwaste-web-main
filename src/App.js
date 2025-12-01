@@ -154,24 +154,37 @@ function App() {
 
           const newCollection = payload.new;
           console.log("✅ Processing new collection:", newCollection.collector_name);
+          console.log("📦 Collection data:", JSON.stringify(newCollection, null, 2));
 
           // Send push notification to admins
           console.log("🚀 Triggering collection push notification...");
           notifyNewCollection(newCollection)
             .then((result) => {
               console.log("📤 Collection push notification result:", result);
+              if (result?.error) {
+                console.error("❌ Push notification error:", result.error);
+              } else if (result?.successful !== undefined) {
+                console.log(`✅ Push notifications sent: ${result.successful} successful, ${result.failed} failed`);
+              }
             })
             .catch((error) => {
               console.error("❌ Failed to send collection push notification:", error);
+              console.error("Error stack:", error.stack);
             });
 
           // Optional: Show browser notification if permission granted
+          // Use unique tag to ensure each notification is shown separately
           if (Notification.permission === "granted") {
+            const uniqueTag = newCollection.id 
+              ? `browser-collection-${newCollection.id}` 
+              : `browser-collection-${Date.now()}`;
+            
             new Notification("G-Waste Collection", {
               body: `${
                 newCollection.collector_name || "A collector"
               } completed waste collection`,
               icon: "/favicon.ico",
+              tag: uniqueTag, // Unique tag prevents notification replacement
             });
           }
         }
@@ -181,10 +194,13 @@ function App() {
         if (status === "SUBSCRIBED") {
           console.log("✅ SUCCESSFULLY SUBSCRIBED to collections changes");
           console.log("🎧 Listening for INSERT events on 'collections' table...");
+          console.log("💡 Make sure Realtime is enabled for 'collections' table in Supabase");
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ FAILED to subscribe to collections changes");
+          console.error("💡 Check Supabase dashboard: Database > Replication > Enable for 'collections' table");
         } else if (status === "TIMED_OUT") {
           console.error("⏰ Collections subscription timed out");
+          console.error("💡 Check your internet connection and Supabase project status");
         } else if (status === "CLOSED") {
           console.log("🔒 Collections subscription closed");
         }
@@ -294,17 +310,40 @@ function App() {
             const publicVapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY || window.VAPID_PUBLIC_KEY || '';
             if (publicVapidKey) {
               console.log("🚀 Initializing push notifications for admin...");
+              console.log("🔑 VAPID key present:", publicVapidKey.substring(0, 20) + "...");
+              
+              // Check if service worker is already registered
+              if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                  console.log("✅ Service worker already registered");
+                } else {
+                  console.log("⚠️ Service worker not registered, will register now");
+                }
+              }
+              
               const initialized = await pushNotificationService.initialize(user.id, publicVapidKey);
               if (initialized) {
                 console.log("✅ Push notifications initialized successfully");
+                
+                // Verify subscription was saved
+                const subscription = await pushNotificationService.getSubscription();
+                if (subscription) {
+                  console.log("✅ Push subscription verified:", subscription.endpoint.substring(0, 50) + "...");
+                } else {
+                  console.warn("⚠️ Push subscription not found after initialization");
+                }
               } else {
                 console.warn("⚠️ Push notifications failed to initialize");
+                console.warn("💡 Check browser console for detailed error messages");
               }
             } else {
               console.warn("❌ VAPID public key not configured. Push notifications will not work.");
+              console.warn("💡 Set REACT_APP_VAPID_PUBLIC_KEY in your .env file");
             }
           } catch (error) {
             console.error("❌ Error initializing push notifications:", error);
+            console.error("Error stack:", error.stack);
           }
 
           await loadAdminNotifications();

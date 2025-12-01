@@ -25,6 +25,7 @@ import dayjs from "dayjs";
 import "./Schedule.css";
 import { supabase } from "../supabaseClient";
 import PageHero from "../components/PageHero";
+import { Skeleton } from "../components/ui/skeleton";
 
 const emptyRoute = {
   route: "",
@@ -914,49 +915,90 @@ const Schedule = () => {
               </tr>
             </thead>
             <tbody>
-              {routes.map((route) => (
-                <tr key={route.id}>
-                  <td>{route.route}</td>
-                  <td>{route.driver}</td>
-                  <td>
-                    {route.crew &&
-                      route.crew
-                        .filter(Boolean)
-                        .map((member) =>
-                          typeof member === "string"
-                            ? member
-                            : [member.firstName, member.lastName]
-                                .filter(Boolean)
-                                .join(" ")
-                        )
-                        .join(" • ")}
-                  </td>
-                  <td>
-                    {route.areas && route.areas.filter(Boolean).join(" • ")}
-                  </td>
-                  <td className="schedule-table-time">
-                    {formatTime12h(route.time)}
-                    {route.end_time ? ` - ${formatTime12h(route.end_time)}` : ""}
-                  </td>
-                  <td>{route.type}</td>
-                  <td>{route.frequency || route.frequency || "—"}</td>
-                  <td>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      className="schedule-table-edit-btn"
-                      onClick={() => openEditModal(route)}
-                    >
-                      Edit
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                [...Array(5)].map((_, index) => (
+                  <tr key={index}>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '40px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '120px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '180px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '200px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '140px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '100px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '100px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '36px', width: '80px', borderRadius: '4px' }} />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                routes.map((route) => (
+                  <tr key={route.id}>
+                    <td>{route.route}</td>
+                    <td>{route.driver}</td>
+                    <td>
+                      {route.crew &&
+                        route.crew
+                          .filter(Boolean)
+                          .map((member) =>
+                            typeof member === "string"
+                              ? member
+                              : [member.firstName, member.lastName]
+                                  .filter(Boolean)
+                                  .join(" ")
+                          )
+                          .join(" • ")}
+                    </td>
+                    <td>
+                      {route.areas && route.areas.filter(Boolean).join(" • ")}
+                    </td>
+                    <td className="schedule-table-time">
+                      {formatTime12h(route.time)}
+                      {route.end_time ? ` - ${formatTime12h(route.end_time)}` : ""}
+                    </td>
+                    <td>{route.type}</td>
+                    <td>{route.frequency || route.frequency || "—"}</td>
+                    <td>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        className="schedule-table-edit-btn"
+                        onClick={() => openEditModal(route)}
+                      >
+                        Edit
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
-      <Dialog open={modalOpen} onClose={closeModal}>
+      <Dialog 
+        open={modalOpen} 
+        onClose={closeModal}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          }
+        }}
+      >
         <DialogTitle
           sx={{
             m: 0,

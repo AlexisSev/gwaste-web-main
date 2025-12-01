@@ -54,7 +54,7 @@ const Sidebar = ({
         </div>
         <div>
           <p>{displayName}</p>
-          <small>G-Waste Admin</small>
+          <small>{adminEmail}</small>
         </div>
       </div>
 

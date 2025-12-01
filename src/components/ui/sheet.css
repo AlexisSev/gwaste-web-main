@@ -1,0 +1,137 @@
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background-color: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-content {
+  position: fixed;
+  z-index: 2001;
+  gap: 1rem;
+  background-color: #ffffff;
+  padding: 0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sheet-content-right {
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  max-width: 380px;
+  border-left: 1px solid #e2e8f0;
+  animation: slideInFromRight 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-content-left {
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  max-width: 380px;
+  border-right: 1px solid #e2e8f0;
+  animation: slideInFromLeft 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-content-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  max-height: 100%;
+  border-bottom: 1px solid #e2e8f0;
+  animation: slideInFromTop 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-content-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  max-height: 100%;
+  border-top: 1px solid #e2e8f0;
+  animation: slideInFromBottom 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-header {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sheet-footer {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #386D2C;
+}
+
+.sheet-description {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+@keyframes overlayShow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+

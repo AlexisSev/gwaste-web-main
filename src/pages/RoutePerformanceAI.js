@@ -24,6 +24,7 @@ import {
   AlertCircle as InfoIcon
 } from 'lucide-react';
 import PageHero from '../components/PageHero';
+import { Skeleton } from '../components/ui/skeleton';
 import './RoutePerformanceAI.css';
 
 // Helper functions
@@ -612,12 +613,94 @@ export default function RoutePerformanceAI() {
     return (
       <div className="route-ai-container">
         <PageHero
-          title="Route Performance AI"
-          subtitle="Analyzing route performance data..."
+          eyebrow="AI Analysis"
+          title="Performance Predictions"
+          subtitle="AI-powered route optimization and performance predictions"
         />
-        <div className="route-ai-loading">
-          <Loader2 className="route-ai-spinner" size={48} />
-          <p>Loading route performance data...</p>
+        
+        {/* Statistics Cards Skeleton */}
+        <div className="route-ai-stats-grid">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="route-ai-stat-card">
+              <Skeleton style={{ height: '48px', width: '48px', borderRadius: '12px' }} />
+              <div className="route-ai-stat-content">
+                <Skeleton style={{ height: '14px', width: '100px', marginBottom: '8px' }} />
+                <Skeleton style={{ height: '28px', width: '60px' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Chart Card Skeleton */}
+        <div className="route-ai-card">
+          <div className="route-ai-card-header">
+            <Skeleton style={{ height: '24px', width: '200px', marginBottom: '8px' }} />
+            <Skeleton style={{ height: '16px', width: '300px' }} />
+          </div>
+          <div className="route-ai-chart-container">
+            <Skeleton style={{ height: '400px', width: '100%', borderRadius: '8px' }} />
+          </div>
+        </div>
+
+        {/* Table Card Skeleton */}
+        <div className="route-ai-card">
+          <div className="route-ai-card-header">
+            <Skeleton style={{ height: '24px', width: '250px', marginBottom: '8px' }} />
+            <Skeleton style={{ height: '16px', width: '350px' }} />
+          </div>
+          <div className="route-ai-table-wrapper">
+            <table className="route-ai-table">
+              <thead>
+                <tr>
+                  {[...Array(7)].map((_, index) => (
+                    <th key={index}>
+                      <Skeleton style={{ height: '16px', width: '80px' }} />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {[...Array(7)].map((_, colIndex) => (
+                      <td key={colIndex}>
+                        <Skeleton style={{ height: '20px', width: colIndex === 0 ? '100px' : colIndex === 1 || colIndex === 2 ? '80px' : '60px' }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Recommendations Skeleton */}
+        <div className="route-ai-card">
+          <div className="route-ai-card-header">
+            <Skeleton style={{ height: '24px', width: '200px', marginBottom: '8px' }} />
+            <Skeleton style={{ height: '16px', width: '300px' }} />
+          </div>
+          <div className="route-ai-recommendations-grid">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="route-ai-recommendation">
+                <div className="route-ai-recommendation-header">
+                  <Skeleton style={{ height: '40px', width: '40px', borderRadius: '8px' }} />
+                  <div style={{ flex: 1, marginLeft: '12px' }}>
+                    <Skeleton style={{ height: '20px', width: '200px', marginBottom: '8px' }} />
+                    <Skeleton style={{ height: '16px', width: '100px' }} />
+                  </div>
+                </div>
+                <Skeleton style={{ height: '16px', width: '100%', marginBottom: '8px' }} />
+                <Skeleton style={{ height: '16px', width: '80%', marginBottom: '16px' }} />
+                <div>
+                  <Skeleton style={{ height: '14px', width: '120px', marginBottom: '8px' }} />
+                  {[...Array(2)].map((_, i) => (
+                    <Skeleton key={i} style={{ height: '14px', width: '90%', marginBottom: '4px', marginLeft: '16px' }} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

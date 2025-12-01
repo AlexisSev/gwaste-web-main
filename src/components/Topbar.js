@@ -1,7 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../App.css";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import ProfileImg from "../logo.svg";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetClose,
+} from "./ui/sheet";
 
 const Topbar = ({
   unresolvedCount,
@@ -12,17 +20,108 @@ const Topbar = ({
 }) => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileImg, setProfileImg] = useState(ProfileImg);
+
+  useEffect(() => {
+    const storedImg = localStorage.getItem('profileImg');
+    if (storedImg) {
+      setProfileImg(storedImg);
+    }
+  }, []);
+
+  // Listen for profile image changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedImg = localStorage.getItem('profileImg');
+      setProfileImg(storedImg || ProfileImg);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Also check periodically for same-tab changes (since storage event only fires across tabs)
+    const interval = setInterval(() => {
+      const storedImg = localStorage.getItem('profileImg');
+      if (storedImg !== profileImg) {
+        setProfileImg(storedImg || ProfileImg);
+      }
+    }, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [profileImg]);
 
 // Normalize notifications received from parent (already real-time data)
-const notifications = collectionNotifications.map((notification, index) => ({
+const normalizedNotifications = collectionNotifications.map((notification, index) => ({
   id: notification.id || `collection-${index}`,
   type: notification.type || "collection",
   title: notification.title || "Collection Completed",
   message: notification.message || "A garbage collection was completed.",
   timestamp: notification.timestamp ? new Date(notification.timestamp) : new Date(),
-  read: Boolean(notification.read)
+  read: Boolean(notification.read),
+  metadata: notification.metadata || {}
 }));
 
+// Filter out duplicate notifications based on area_collected
+// Remove notifications that match pattern "drivername has completed collection area_collected"
+const filteredNotifications = normalizedNotifications.filter((notification, index, self) => {
+  const message = (notification.message || '').toLowerCase();
+  
+  // Remove notifications matching pattern: "drivername has completed collection area_collected"
+  // This pattern typically appears as: "[name] has completed collection [area]"
+  const patternToRemove = /\bhas completed collection\b/i;
+  if (patternToRemove.test(message)) {
+    return false; // Remove this notification
+  }
+  
+  // Extract area_collected from message for deduplication
+  // Look for patterns like "collected from [area]" or "from [area]"
+  const areaMatch = message.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
+                   message.match(/from (.+?)(?:\s+\(|$|route)/i);
+  const areaCollected = areaMatch ? areaMatch[1].trim() : null;
+  
+  // If we found an area, check for duplicates with the same area
+  if (areaCollected) {
+    // Find if there's another notification with the same area
+    const hasDuplicate = self.some((n, i) => {
+      if (i === index) return false;
+      const otherMessage = (n.message || '').toLowerCase();
+      // Skip if the other notification matches the pattern to remove
+      if (patternToRemove.test(otherMessage)) return false;
+      
+      const otherAreaMatch = otherMessage.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
+                            otherMessage.match(/from (.+?)(?:\s+\(|$|route)/i);
+      const otherArea = otherAreaMatch ? otherAreaMatch[1].trim() : null;
+      return otherArea && otherArea.toLowerCase() === areaCollected.toLowerCase();
+    });
+    
+    // If duplicate found, keep only the first one (earlier timestamp)
+    if (hasDuplicate) {
+      const duplicateIndex = self.findIndex((n, i) => {
+        if (i === index) return false;
+        if (patternToRemove.test((n.message || '').toLowerCase())) return false;
+        const otherMessage = (n.message || '').toLowerCase();
+        const otherAreaMatch = otherMessage.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
+                              otherMessage.match(/from (.+?)(?:\s+\(|$|route)/i);
+        const otherArea = otherAreaMatch ? otherAreaMatch[1].trim() : null;
+        return otherArea && otherArea.toLowerCase() === areaCollected.toLowerCase();
+      });
+      
+      // Keep the one with earlier timestamp, remove the later one
+      if (duplicateIndex !== -1) {
+        const otherNotification = self[duplicateIndex];
+        const thisTime = new Date(notification.timestamp).getTime();
+        const otherTime = new Date(otherNotification.timestamp).getTime();
+        // Keep the earlier one, remove this if it's later
+        return thisTime <= otherTime;
+      }
+    }
+  }
+  
+  return true;
+});
+
+const notifications = filteredNotifications;
 const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = (notificationId) => {
@@ -61,9 +160,15 @@ const unreadNotificationCount = notifications.filter(n => !n.read).length;
               <span className="topbar-notif-count">{unreadNotificationCount + unresolvedCount}</span>
             )}
           </button>
-          <div className="topbar-user-chip">
-            <span>{adminName}</span>
-            <small>{adminEmail || "Supervisor"}</small>
+          <div className="topbar-user-profile">
+            <img 
+              src={profileImg} 
+              alt="Profile" 
+              className="topbar-user-avatar"
+              onError={(e) => {
+                e.target.src = ProfileImg;
+              }}
+            />
           </div>
         </div>
       </div>
@@ -128,41 +233,16 @@ const unreadNotificationCount = notifications.filter(n => !n.read).length;
       )}
 
       {/* Notifications Panel */}
-      {notificationsOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.1)',
-          zIndex: 1000,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          paddingTop: 70,
-          paddingRight: 20,
-        }} onClick={() => setNotificationsOpen(false)}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-            width: 380,
-            maxHeight: '70vh',
-            overflow: 'hidden',
-            position: 'relative',
-          }} onClick={(e) => e.stopPropagation()}>
+      <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <SheetContent side="right" style={{ padding: 0 }}>
+          <SheetHeader>
             <div style={{
-              padding: '20px 24px 12px',
-              borderBottom: '1px solid #f0f0f0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <h3 style={{ margin: 0, color: '#386D2C', fontSize: 18, fontWeight: 600 }}>
-                Notifications
-              </h3>
-              <button
-                onClick={() => setNotificationsOpen(false)}
+              <SheetTitle>Notifications</SheetTitle>
+              <SheetClose
                 style={{
                   background: 'none',
                   border: 'none',
@@ -175,99 +255,103 @@ const unreadNotificationCount = notifications.filter(n => !n.read).length;
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'background 0.15s ease',
                 }}
+                onMouseEnter={(e) => e.target.style.background = 'rgba(0, 0, 0, 0.05)'}
+                onMouseLeave={(e) => e.target.style.background = 'none'}
               >
                 ×
-              </button>
+              </SheetClose>
             </div>
+          </SheetHeader>
 
-            <div style={{
-              maxHeight: 'calc(70vh - 80px)',
-              overflowY: 'auto',
-            }}>
-
-              {unresolvedCount > 0 && (
-                <div style={{
-                  padding: '16px 24px',
-                  borderBottom: '1px solid #f5f5f5',
-                  background: '#fff7e6'
-                }}>
-                  <div style={{ fontWeight: 600, color: '#b25e09', marginBottom: 4 }}>
-                    {unresolvedCount} unresolved report{unresolvedCount > 1 ? 's' : ''}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#7a4a0f' }}>
-                    Review pending issues under the Issues section.
-                  </div>
+          <div style={{
+            maxHeight: 'calc(100vh - 80px)',
+            overflowY: 'auto',
+            flex: 1,
+          }}>
+            {unresolvedCount > 0 && (
+              <div style={{
+                padding: '16px 24px',
+                borderBottom: '1px solid #f5f5f5',
+                background: '#fff7e6'
+              }}>
+                <div style={{ fontWeight: 600, color: '#b25e09', marginBottom: 4 }}>
+                  {unresolvedCount} unresolved report{unresolvedCount > 1 ? 's' : ''}
                 </div>
-              )}
-
-              {notifications.length === 0 ? (
-                <div style={{
-                  padding: '40px 24px',
-                  textAlign: 'center',
-                  color: '#666',
-                  fontSize: 16,
-                }}>
-                  No collection notifications yet
+                <div style={{ fontSize: 13, color: '#7a4a0f' }}>
+                  Review pending issues under the Issues section.
                 </div>
-              ) : (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    style={{
-                      padding: '16px 24px',
-                      borderBottom: '1px solid #f5f5f5',
-                      cursor: 'pointer',
-                      background: notification.read ? '#fff' : '#f8f9ff',
-                      transition: 'background 0.2s ease',
-                    }}
-                    onClick={() => markAsRead(notification.id)}
-                  >
+              </div>
+            )}
+
+            {notifications.length === 0 ? (
+              <div style={{
+                padding: '40px 24px',
+                textAlign: 'center',
+                color: '#666',
+                fontSize: 16,
+              }}>
+                No collection notifications yet
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  style={{
+                    padding: '16px 24px',
+                    borderBottom: '1px solid #f5f5f5',
+                    cursor: 'pointer',
+                    background: notification.read ? '#fff' : '#f8f9ff',
+                    transition: 'background 0.2s ease',
+                  }}
+                  onClick={() => markAsRead(notification.id)}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                  }}>
                     <div style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                    }}>
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: notification.read ? '#ccc' : '#4B8B3B',
+                      marginTop: 6,
+                      flexShrink: 0,
+                    }} />
+                    <div style={{ flex: 1 }}>
                       <div style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: notification.read ? '#ccc' : '#4B8B3B',
-                        marginTop: 6,
-                        flexShrink: 0,
-                      }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{
-                          fontWeight: 600,
-                          color: '#386D2C',
-                          fontSize: 14,
-                          marginBottom: 4,
-                        }}>
-                          {notification.title}
-                        </div>
-                        <div style={{
-                          color: '#666',
-                          fontSize: 13,
-                          lineHeight: 1.4,
-                          marginBottom: 6,
-                        }}>
-                          {notification.message}
-                        </div>
-                        <div style={{
-                          color: '#999',
-                          fontSize: 11,
-                        }}>
-                          {formatTimeAgo(notification.timestamp)}
-                        </div>
+                        fontWeight: 600,
+                        color: '#386D2C',
+                        fontSize: 14,
+                        marginBottom: 4,
+                      }}>
+                        {notification.title}
+                      </div>
+                      <div style={{
+                        color: '#666',
+                        fontSize: 13,
+                        lineHeight: 1.4,
+                        marginBottom: 6,
+                      }}>
+                        {notification.message}
+                      </div>
+                      <div style={{
+                        color: '#999',
+                        fontSize: 11,
+                      }}>
+                        {formatTimeAgo(notification.timestamp)}
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import "./ResidentIssues.css";
 import PageHero from "../components/PageHero";
+import { Skeleton } from "../components/ui/skeleton";
 
 const ResidentIssues = () => {
   const [search, setSearch] = useState("");
@@ -302,7 +303,51 @@ const ResidentIssues = () => {
 
       <div className="reports-table-container">
         {loading ? (
-          <div className="reports-loading">Loading reports...</div>
+          <div className="reports-table-wrapper">
+            <table className="reports-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Image</th>
+                  <th>Description</th>
+                  <th>Resident</th>
+                  <th>Address</th>
+                  <th>Time</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, index) => (
+                  <tr key={index}>
+                    <td>
+                      <Skeleton style={{ height: '24px', width: '80px', borderRadius: '20px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '60px', width: '60px', borderRadius: '6px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '16px', width: '200px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '16px', width: '120px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '16px', width: '150px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '16px', width: '140px' }} />
+                    </td>
+                    <td>
+                      <div className="report-actions" style={{ padding: 0 }}>
+                        <Skeleton style={{ height: '32px', width: '100px', borderRadius: '6px' }} />
+                        <Skeleton style={{ height: '32px', width: '120px', borderRadius: '6px' }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : filteredReports.length === 0 ? (
           <div className="reports-empty">No {activeTab} issues found.</div>
         ) : (

@@ -32,18 +32,36 @@ export async function sendPushNotification(options) {
       console.log('🔍 Fetching admin users for notifications...');
       const { data: admins, error: adminError } = await supabase
         .from('admins')
-        .select('*'); // Get all columns to see what's available
+        .select('id, user_id, name, email'); // Select specific fields
 
-      console.log('📊 Admins query result:', { data: admins, error: adminError });
+      console.log('📊 Admins query result:', { 
+        count: admins?.length || 0, 
+        admins: admins,
+        error: adminError 
+      });
+      
+      if (adminError) {
+        console.error('❌ Error details:', JSON.stringify(adminError, null, 2));
+      }
 
       if (adminError) {
         console.error('❌ Error fetching admins:', adminError);
         return { error: adminError };
       }
 
-      // Try different column names that might exist
-      targetUserIds = admins?.map(admin => admin.user_id || admin.id || admin.email).filter(Boolean) || [];
-      console.log('🎯 Target user IDs found:', targetUserIds);
+      // Only use user_id field - this must match the user_id in push_subscriptions table
+      // Filter out any admins without a valid user_id
+      targetUserIds = admins
+        ?.map(admin => admin.user_id) // Only use user_id, not id or email
+        .filter(userId => userId != null && userId !== '') || [];
+      
+      console.log('📋 All admins fetched:', admins);
+      console.log('🎯 Target user IDs found (using user_id only):', targetUserIds);
+      
+      if (targetUserIds.length === 0 && admins && admins.length > 0) {
+        console.warn('⚠️ No admins have a valid user_id field');
+        console.warn('📋 Admin records:', admins.map(a => ({ id: a.id, user_id: a.user_id, name: a.name, email: a.email })));
+      }
     }
 
     if (targetUserIds.length === 0) {
@@ -67,9 +85,17 @@ export async function sendPushNotification(options) {
         };
         console.log('📦 Request body:', requestBody);
 
+        console.log('📤 Invoking edge function with body:', requestBody);
         const { data, error } = await supabase.functions.invoke('rapid-function', {
           body: requestBody,
         });
+        
+        if (error) {
+          console.error(`❌ Edge function error for admin ${adminUserId}:`, error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
+        } else {
+          console.log(`✅ Edge function response for admin ${adminUserId}:`, data);
+        }
 
         if (error) {
           console.error(`❌ Error sending to admin ${adminUserId}:`, error);
@@ -112,10 +138,14 @@ export async function notifyNewReport(report) {
  * Send push notification for new collection
  */
 export async function notifyNewCollection(collection) {
+  console.log('🔔 notifyNewCollection called with:', collection);
+  
   // Format areas collected
   let areasText = 'an area';
   if (collection.areas_collected && Array.isArray(collection.areas_collected) && collection.areas_collected.length > 0) {
     areasText = collection.areas_collected.join(', ');
+  } else if (collection.areas_collected && typeof collection.areas_collected === 'string') {
+    areasText = collection.areas_collected;
   }
   
   // Get route name if route_id is available
@@ -136,13 +166,25 @@ export async function notifyNewCollection(collection) {
     }
   }
   
-  return sendPushNotification({
+  // Create unique tag for each collection to prevent notification replacement
+  // Use collection ID if available, otherwise use timestamp
+  const uniqueTag = collection.id 
+    ? `collection-${collection.id}` 
+    : `collection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const notificationOptions = {
     title: 'New Collection Completed',
     body: `${collection.collector_name || 'Driver'} collected from ${areasText}${routeInfo}`,
     icon: '/logo192.png',
     url: '/Dashboard',
-    tag: 'collection',
-  });
+    tag: uniqueTag, // Unique tag ensures each notification is shown separately
+  };
+  
+  console.log('📤 Sending push notification with options:', notificationOptions);
+  console.log('🏷️ Unique notification tag:', uniqueTag);
+  const result = await sendPushNotification(notificationOptions);
+  console.log('📤 Push notification send result:', result);
+  return result;
 }
 
 /**

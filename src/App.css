@@ -28,12 +28,13 @@ body {
 }
 
 .page-hero {
+  position: -webkit-sticky;
   position: sticky;
   top: 100px;
   z-index: 100;
   background: transparent;
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border-radius: 28px;
   padding: 28px 32px;
   padding-top: 30px;
@@ -415,23 +416,20 @@ body {
   box-shadow: 0 2px 6px rgba(231, 76, 60, 0.4);
 }
 
-.topbar-user-chip {
-  background: #fff;
-  border-radius: 18px;
-  padding: 10px 16px;
-  box-shadow: 0 12px 32px rgba(15, 36, 21, 0.1);
+.topbar-user-profile {
   display: flex;
-  flex-direction: column;
-  min-width: 140px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
 }
 
-.topbar-user-chip span {
-  font-weight: 600;
-  color: #1d3b28;
-}
-
-.topbar-user-chip small {
-  color: #7d8d82;
+.topbar-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .avatar {

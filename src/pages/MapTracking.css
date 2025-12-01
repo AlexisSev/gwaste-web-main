@@ -378,6 +378,7 @@
   z-index: 1;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
 .osm-map {
@@ -890,6 +891,196 @@
 .map-fullscreen-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Active Trucks Card - Top Right - Shadcn Inspired */
+.active-trucks-card {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  z-index: 9999;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 16px;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  animation: slideInRight 0.3s ease-out;
+  pointer-events: auto;
+  transition: top 0.2s ease, right 0.2s ease;
+}
+
+/* Fullscreen mode - use fixed positioning */
+.active-trucks-card.fullscreen-mode {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+}
+
+/* Fullscreen mode adjustments via CSS pseudo-classes (fallback) */
+.view-map-container:fullscreen .active-trucks-card,
+.view-map-container:-webkit-full-screen .active-trucks-card,
+.view-map-container:-moz-full-screen .active-trucks-card,
+.view-map-container:-ms-fullscreen .active-trucks-card {
+  position: fixed !important;
+  top: 64px !important;
+  right: 16px !important;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.active-trucks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.active-trucks-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #09090b;
+  letter-spacing: -0.01em;
+}
+
+.active-trucks-count {
+  background: #f4f4f5;
+  color: #09090b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.active-trucks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+  padding-right: 4px;
+}
+
+.active-trucks-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.active-trucks-list::-webkit-scrollbar-track {
+  background: #f4f4f5;
+  border-radius: 3px;
+}
+
+.active-trucks-list::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 3px;
+}
+
+.active-trucks-list::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+.active-truck-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fafafa;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.active-truck-item:hover {
+  background: #f4f4f5;
+  transform: translateX(2px);
+}
+
+.active-truck-color-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.active-truck-color-indicator::before {
+  content: '🚛';
+  font-size: 12px;
+  line-height: 1;
+}
+
+.active-truck-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #09090b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.active-trucks-empty {
+  padding: 16px 0;
+  text-align: center;
+  color: #71717a;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .active-trucks-card {
+    top: 10px;
+    right: 10px;
+    min-width: 200px;
+    max-width: calc(100vw - 80px);
+    max-height: calc(100vh - 80px);
+  }
+
+  .view-map-container:fullscreen .active-trucks-card,
+  .view-map-container:-webkit-full-screen .active-trucks-card,
+  .view-map-container:-moz-full-screen .active-trucks-card,
+  .view-map-container:-ms-fullscreen .active-trucks-card {
+    top: 10px;
+    right: 10px;
+  }
+
+  .active-trucks-title {
+    font-size: 14px;
+  }
+
+  .active-trucks-list {
+    max-height: calc(100vh - 150px);
+  }
+
+  .active-truck-name {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 768px) {

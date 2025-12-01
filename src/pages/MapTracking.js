@@ -46,6 +46,7 @@ const MapTracking = ({ collectorId, userRole }) => {
   const [selectedTruckForGraph, setSelectedTruckForGraph] = useState(null);
   const [barangayCache, setBarangayCache] = useState({}); // Cache barangay lookups
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const assignedColorsRef = useRef(new Map()); // Track assigned colors to ensure uniqueness
 
   // Threshold for considering a truck offline (in minutes)
   const OFFLINE_THRESHOLD_MINUTES = 5;
@@ -59,26 +60,70 @@ const MapTracking = ({ collectorId, userRole }) => {
     return (now - updatedTime) <= thresholdMs;
   };
 
-  // Deterministic color per truck id
+  // Deterministic color per truck id - expanded palette for better distinction
   const getColorForId = (id) => {
+    // Expanded color palette with 25 distinct, vibrant colors
     const palette = [
       "#e74c3c", // red
+      "#3498db", // bright blue
+      "#2ecc71", // green
       "#f39c12", // orange
-      "#27ae60", // green
-      "#2980b9", // blue
-      "#8e44ad", // purple
+      "#9b59b6", // purple
+      "#1abc9c", // turquoise
+      "#e67e22", // dark orange
+      "#34495e", // dark blue-gray
       "#16a085", // teal
-      "#d35400", // dark orange
-      "#2c3e50", // navy
       "#c0392b", // dark red
-      "#7f8c8d", // gray
+      "#2980b9", // blue
+      "#27ae60", // dark green
+      "#d35400", // burnt orange
+      "#8e44ad", // violet
+      "#f1c40f", // yellow
+      "#e91e63", // pink
+      "#00bcd4", // cyan
+      "#ff5722", // deep orange
+      "#795548", // brown
+      "#607d8b", // blue-gray
+      "#4caf50", // light green
+      "#ff9800", // amber
+      "#3f51b5", // indigo
+      "#009688", // teal-green
+      "#ffeb3b", // yellow
     ];
+    
+    // Check if this ID already has an assigned color
+    if (assignedColorsRef.current.has(id)) {
+      return assignedColorsRef.current.get(id);
+    }
+    
+    // Calculate hash for deterministic color assignment
     const s = String(id);
     let hash = 0;
     for (let i = 0; i < s.length; i += 1) {
       hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
     }
-    return palette[hash % palette.length];
+    
+    // Get initial color from palette
+    let colorIndex = hash % palette.length;
+    let color = palette[colorIndex];
+    
+    // If color is already assigned to another truck, find next available color
+    const usedColors = new Set(Array.from(assignedColorsRef.current.values()));
+    if (usedColors.has(color)) {
+      // Find first available color in palette
+      for (let i = 0; i < palette.length; i++) {
+        const nextIndex = (colorIndex + i) % palette.length;
+        const nextColor = palette[nextIndex];
+        if (!usedColors.has(nextColor)) {
+          color = nextColor;
+          break;
+        }
+      }
+    }
+    
+    // Assign and cache the color for this ID
+    assignedColorsRef.current.set(id, color);
+    return color;
   };
 
   useEffect(() => {
@@ -94,6 +139,7 @@ const MapTracking = ({ collectorId, userRole }) => {
     truckMarkersRef.current = {};
     driverCacheRef.current = {};
     trucksDataRef.current = {};
+    assignedColorsRef.current.clear(); // Clear color assignments
     setTrucks([]);
     setSelectedTruckId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,7 +167,12 @@ const MapTracking = ({ collectorId, userRole }) => {
       }
       
       const coords = [latitude, longitude];
-      const color = getColorForId(id);
+      
+      // Get color - use stored color if available, otherwise get new color
+      let color = trucksDataRef.current[id]?.color;
+      if (!color) {
+        color = getColorForId(id);
+      }
 
       // Fetch driver info from Supabase collectors if not cached
       let driverInfo = driverCacheRef.current[id];
@@ -167,11 +218,12 @@ const MapTracking = ({ collectorId, userRole }) => {
       // Update or create marker
       if (truckMarkersRef.current[id]) {
         const marker = truckMarkersRef.current[id];
-        // Ensure icon color is up to date
+        // Ensure icon color is up to date and matches the stored color
+        const currentColor = trucksDataRef.current[id]?.color || color;
         marker.setIcon(
           L.divIcon({
             className: "truck-marker",
-            html: `<div style="width:32px;height:32px;background-color:${color};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;">🚛</div>`,
+            html: `<div style="width:32px;height:32px;background-color:${currentColor};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚛</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 16],
           })
@@ -217,9 +269,11 @@ const MapTracking = ({ collectorId, userRole }) => {
           marker._graphHandlerAdded = true;
         }
       } else {
+        // Use the assigned color for new markers
+        const markerColor = color;
         const truckIcon = L.divIcon({
           className: "truck-marker",
-          html: `<div style="width:32px;height:32px;background-color:${color};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;">🚛</div>`,
+          html: `<div style="width:32px;height:32px;background-color:${markerColor};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚛</div>`,
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         });
@@ -265,7 +319,8 @@ const MapTracking = ({ collectorId, userRole }) => {
         color,
         barangay,
       };
-      setTrucks(Object.values(trucksDataRef.current));
+      // Update state to trigger re-render of Active Trucks card
+      setTrucks([...Object.values(trucksDataRef.current)]);
     };
 
     const removeMarker = (row) => {
@@ -276,7 +331,10 @@ const MapTracking = ({ collectorId, userRole }) => {
         delete truckMarkersRef.current[id];
       }
       delete trucksDataRef.current[id];
-      setTrucks(Object.values(trucksDataRef.current));
+      // Clean up assigned color when truck is removed
+      assignedColorsRef.current.delete(id);
+      // Update state to trigger re-render of Active Trucks card
+      setTrucks([...Object.values(trucksDataRef.current)]);
     };
 
     // Initial fetch from Supabase TruckLocation
@@ -325,8 +383,9 @@ const MapTracking = ({ collectorId, userRole }) => {
       filterString += `,collector_id=eq.${collectorId}`;
     }
 
+    // Set up real-time subscription with error handling
     const channel = supabase
-      .channel("realtime:trucklocation")
+      .channel(`realtime:trucklocation:${Date.now()}`) // Unique channel name to avoid conflicts
       .on(
         "postgres_changes",
         {
@@ -336,36 +395,53 @@ const MapTracking = ({ collectorId, userRole }) => {
           filter: filterString
         },
         async (payload) => {
-          if (payload.eventType === "DELETE") {
-            removeMarker(payload.old || {});
-          } else if (payload.eventType === "UPDATE") {
-            const newData = payload.new || {};
-            const oldData = payload.old || {};
+          try {
+            console.log('📡 Real-time update received:', payload.eventType, payload.new?.collector_id || payload.old?.collector_id);
+            
+            if (payload.eventType === "DELETE") {
+              removeMarker(payload.old || {});
+            } else if (payload.eventType === "UPDATE") {
+              const newData = payload.new || {};
+              const oldData = payload.old || {};
 
-            // If truck became inactive, remove it
-            if (oldData.status === "active" && newData.status !== "active") {
-              removeMarker(oldData);
+              // If truck became inactive, remove it
+              if (oldData.status === "active" && newData.status !== "active") {
+                removeMarker(oldData);
+              }
+              // If truck is active, upsertMarker will check if it's online and handle accordingly
+              else if (newData.status === "active") {
+                // upsertMarker will check if truck is online and handle accordingly
+                await upsertMarker(newData);
+              }
+            } else if (payload.eventType === "INSERT") {
+              // Only add markers for active trucks that are online
+              const newData = payload.new || {};
+              if (newData.status === "active") {
+                // upsertMarker will check if truck is online and handle accordingly
+                await upsertMarker(newData);
+              }
             }
-            // If truck is active, upsertMarker will check if it's online and handle accordingly
-            else if (newData.status === "active") {
-              // upsertMarker will check if truck is online and handle accordingly
-              await upsertMarker(newData);
-            }
-          } else if (payload.eventType === "INSERT") {
-            // Only add markers for active trucks that are online
-            const newData = payload.new || {};
-            if (newData.status === "active") {
-              // upsertMarker will check if truck is online and handle accordingly
-              await upsertMarker(newData);
-            }
+          } catch (err) {
+            console.error('❌ Error processing real-time update:', err);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Real-time subscription error');
+        } else if (status === 'TIMED_OUT') {
+          console.warn('⚠️ Real-time subscription timed out, relying on polling');
+        } else {
+          console.log('📡 Real-time subscription status:', status);
+        }
+      });
 
     // Polling fallback to keep updates smooth even if realtime is unavailable
-    if (!pollingRef.current) {
-      pollingRef.current = setInterval(async () => {
+    // Always set up polling as a backup to real-time subscriptions
+    const pollingInterval = setInterval(async () => {
+      try {
         // Calculate the cutoff time for online trucks
         const cutoffTime = new Date();
         cutoffTime.setMinutes(cutoffTime.getMinutes() - OFFLINE_THRESHOLD_MINUTES);
@@ -383,7 +459,12 @@ const MapTracking = ({ collectorId, userRole }) => {
           query = query.eq("collector_id", collectorId);
         }
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) {
+          console.error('❌ Polling error:', error);
+          return;
+        }
+        
         if (Array.isArray(data)) {
           // Get all currently tracked truck IDs
           const trackedIds = new Set(Object.keys(truckMarkersRef.current));
@@ -393,7 +474,7 @@ const MapTracking = ({ collectorId, userRole }) => {
           for (const row of data) {
             const id = row.collector_id || row.truck_id || row.id || row.location_id;
             if (id) {
-              onlineIds.add(id);
+              onlineIds.add(String(id));
               await upsertMarker(row);
             }
           }
@@ -408,11 +489,20 @@ const MapTracking = ({ collectorId, userRole }) => {
             }
           });
         }
-      }, 4000);
-    }
+      } catch (err) {
+        console.error('❌ Error in polling interval:', err);
+      }
+    }, 4000);
+
+    // Store interval ID for cleanup
+    pollingRef.current = pollingInterval;
 
     return () => {
-      supabase.removeChannel(channel);
+      // Cleanup: remove real-time subscription
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      // Cleanup: clear polling interval
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -779,6 +869,32 @@ const MapTracking = ({ collectorId, userRole }) => {
             {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
           </button>
         )}
+
+        {/* Active Trucks Card - Top Right */}
+        <div className={`active-trucks-card ${isFullscreen ? 'fullscreen-mode' : ''}`}>
+          <div className="active-trucks-header">
+            <h3 className="active-trucks-title">Active Trucks</h3>
+            <span className="active-trucks-count">{trucks.length}</span>
+          </div>
+          {trucks.length > 0 ? (
+            <div className="active-trucks-list">
+              {trucks.map((truck) => (
+                <div key={truck.id} className="active-truck-item">
+                  <div 
+                    className="active-truck-color-indicator" 
+                    style={{ backgroundColor: truck.color }}
+                  />
+                  <span className="active-truck-name">{truck.driverName}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="active-trucks-empty">
+              <p>No active trucks</p>
+            </div>
+          )}
+        </div>
+
         <div id="map" className="osm-map"></div>
       </div>
 

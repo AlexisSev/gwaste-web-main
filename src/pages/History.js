@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import PageHero from "../components/PageHero";
+import { Skeleton } from "../components/ui/skeleton";
 import "./History.css";
 
 const History = () => {
@@ -135,11 +136,25 @@ const History = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan="5" className="history-empty">
-                    Loading collection history…
-                  </td>
-                </tr>
+                [...Array(8)].map((_, index) => (
+                  <tr key={index}>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '150px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '200px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '100px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '120px' }} />
+                    </td>
+                    <td>
+                      <Skeleton style={{ height: '20px', width: '100px' }} />
+                    </td>
+                  </tr>
+                ))
               ) : filteredCollections.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="history-empty">
