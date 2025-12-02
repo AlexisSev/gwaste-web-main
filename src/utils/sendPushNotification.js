@@ -172,14 +172,18 @@ export async function notifyNewCollection(collection) {
     }
   }
   
-  // Send separate notification for each area
-  const results = await Promise.allSettled(
-    areas.map(async (area, index) => {
+  // Send separate notification for each area sequentially to avoid rate limiting
+  const results = [];
+  for (let index = 0; index < areas.length; index++) {
+    const area = areas[index];
+    
+    try {
       // Create unique tag for each area notification - include area name in tag for uniqueness
       const areaSlug = area.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      const timestamp = Date.now();
       const uniqueTag = collection.id 
-        ? `collection-${collection.id}-${areaSlug}-${index}-${Date.now()}` 
-        : `collection-${Date.now()}-${areaSlug}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+        ? `collection-${collection.id}-${areaSlug}-${index}-${timestamp}` 
+        : `collection-${timestamp}-${areaSlug}-${index}-${Math.random().toString(36).substr(2, 9)}`;
       
       const notificationOptions = {
         title: 'New Collection Completed',
@@ -193,19 +197,28 @@ export async function notifyNewCollection(collection) {
       console.log('🏷️ Unique notification tag:', uniqueTag);
       console.log('📦 Notification body:', notificationOptions.body);
       
-      // Add small delay between notifications to avoid rate limiting
+      // Add small delay between notifications to avoid rate limiting (except for first one)
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100 * index));
+        await new Promise(resolve => setTimeout(resolve, 150));
       }
       
-      return await sendPushNotification(notificationOptions);
-    })
-  );
+      const result = await sendPushNotification(notificationOptions);
+      results.push({ status: 'fulfilled', value: result });
+    } catch (error) {
+      console.error(`❌ Error sending push notification for area ${area}:`, error);
+      results.push({ status: 'rejected', reason: error });
+    }
+  }
   
   const successful = results.filter(r => r.status === 'fulfilled').length;
   const failed = results.filter(r => r.status === 'rejected').length;
   
-  console.log(`📤 Push notification results: ${successful} successful, ${failed} failed`);
+  console.log(`📤 Push notification results: ${successful} successful, ${failed} failed out of ${areas.length} total`);
+  
+  if (failed > 0) {
+    console.warn('⚠️ Some push notifications failed. Check the logs above for details.');
+  }
+  
   return { successful, failed, total: areas.length };
 }
 

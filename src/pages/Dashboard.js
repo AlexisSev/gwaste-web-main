@@ -199,6 +199,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
 
   // Helper function to expand collections with multiple areas into separate entries
   // Each area in areas_collected becomes a separate collection entry for display
+  // Each area gets its own estimated time based on when it was likely collected
   const expandCollectionsByArea = (collectionsData) => {
     if (!collectionsData || !Array.isArray(collectionsData)) {
       return [];
@@ -217,13 +218,64 @@ const Dashboard = ({ onNavigate = () => {} }) => {
         areas.push('N/A');
       }
       
-      // Create a separate entry for each area
+      // Get base timestamps
+      const collectedAt = collection.collected_at ? new Date(collection.collected_at) : null;
+      const updatedAt = collection.updated_at ? new Date(collection.updated_at) : null;
+      const createdAt = collection.created_at ? new Date(collection.created_at) : null;
+      
+      // Determine if collection was updated (indicating areas were added later)
+      const wasUpdated = updatedAt && collectedAt && updatedAt.getTime() > collectedAt.getTime() + 1000; // 1 second buffer
+      
+      // Calculate time difference if updated
+      const timeDiff = wasUpdated && areas.length > 1 
+        ? (updatedAt.getTime() - collectedAt.getTime()) / areas.length 
+        : 0;
+      
+      // Create a separate entry for each area with estimated time
       areas.forEach((area, index) => {
+        // Check if metadata has per-area timestamps (from collector app)
+        const metadata = collection.metadata || {};
+        const areaTimestamps = metadata.area_timestamps || {};
+        const normalizedArea = String(area || '').trim();
+        const areaTimestamp = areaTimestamps[normalizedArea] || 
+                             areaTimestamps[area] ||
+                             Object.values(areaTimestamps).find((ts, idx) => 
+                               Object.keys(areaTimestamps)[idx]?.toLowerCase() === normalizedArea.toLowerCase()
+                             );
+        
+        let estimatedTime;
+        
+        if (areaTimestamp) {
+          // Use exact timestamp from metadata if available
+          estimatedTime = new Date(areaTimestamp);
+        } else {
+          // Estimate time for this area:
+          // - First area: use collected_at (or created_at if collected_at is null)
+          // - Subsequent areas: use collected_at + (index * estimated interval)
+          // - If collection was updated, distribute the time difference across areas
+          estimatedTime = collectedAt || createdAt || new Date();
+          
+          if (areas.length > 1 && index > 0) {
+            if (wasUpdated && timeDiff > 0) {
+              // Distribute the time difference across areas
+              estimatedTime = new Date(collectedAt.getTime() + (timeDiff * index));
+            } else if (collectedAt) {
+              // Estimate 15-30 minutes per area if no update info
+              const minutesPerArea = 20; // Average 20 minutes per area
+              estimatedTime = new Date(collectedAt.getTime() + (index * minutesPerArea * 60 * 1000));
+            }
+          }
+        }
+        
         expanded.push({
           ...collection,
           id: `${collection.id || 'unknown'}-${index}`, // Unique ID for each expanded entry
           areas_collected: area, // Single area instead of array
-          original_id: collection.id // Keep reference to original collection
+          original_id: collection.id, // Keep reference to original collection
+          // Override collected_at with estimated time for this specific area
+          collected_at: estimatedTime.toISOString(),
+          // Store original collected_at for reference
+          original_collected_at: collection.collected_at
         });
       });
     });
@@ -232,6 +284,13 @@ const Dashboard = ({ onNavigate = () => {} }) => {
 
   // Expand collections for display purposes
   const expandedCollections = expandCollectionsByArea(collections);
+
+  // Sort expanded collections by estimated collected_at time (most recent first)
+  const sortedExpandedCollections = [...expandedCollections].sort((a, b) => {
+    const timeA = a.collected_at ? new Date(a.collected_at).getTime() : 0;
+    const timeB = b.collected_at ? new Date(b.collected_at).getTime() : 0;
+    return timeB - timeA; // Descending order (newest first)
+  });
 
   // Summary data
   const totalSchedules = routes.length;
@@ -595,7 +654,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                     ))
                   ) : (
                     <>
-                      {expandedCollections.slice(0, 5).map(collection => (
+                      {sortedExpandedCollections.slice(0, 5).map(collection => (
                         <tr key={collection.id}>
                           <td>{collection.collector_name || 'Unknown'}</td>
                           <td>
@@ -605,7 +664,9 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                           <td>
                             {collection.collected_date
                               ? new Date(collection.collected_date).toLocaleDateString()
-                              : 'N/A'}
+                              : (collection.collected_at 
+                                  ? new Date(collection.collected_at).toLocaleDateString()
+                                  : 'N/A')}
                           </td>
                           <td>
                             {collection.collected_at

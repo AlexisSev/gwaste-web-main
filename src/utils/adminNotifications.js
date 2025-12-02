@@ -46,24 +46,55 @@ export async function markAdminNotificationRead(notificationId) {
 /**
  * Create admin notifications for a collection
  * Creates one notification per area collected
- * Deletes any existing notifications for this collection first (from database trigger)
+ * Note: If the database trigger is updated to create separate notifications per area,
+ * this function may not be needed. Otherwise, it ensures one notification per area.
  */
 export async function createAdminNotificationsForCollection(collection) {
   try {
     console.log('🔔 Creating admin notifications for collection:', collection.id);
     
-    // First, delete any notifications created by the database trigger for this collection
-    // (The trigger creates one notification per collection, but we want one per area)
+    // Wait a moment for database trigger to complete, then check if it created proper notifications
+    // The database trigger should now create one notification per area
     if (collection.id) {
-      const { error: deleteError } = await supabase
+      // Small delay to let database trigger complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const { data: existingNotifications, error: checkError } = await supabase
         .from('admin_notifications')
-        .delete()
+        .select('id, areas_collected, collector_name')
         .eq('collection_id', collection.id);
       
-      if (deleteError) {
-        console.warn('⚠️ Error deleting existing notifications (may not exist yet):', deleteError);
-      } else {
-        console.log('🗑️ Deleted any existing notifications for this collection');
+      if (!checkError && existingNotifications && existingNotifications.length > 0) {
+        const collectionAreas = Array.isArray(collection.areas_collected) 
+          ? collection.areas_collected.filter(a => a && a.trim() !== '')
+          : (collection.areas_collected ? [collection.areas_collected] : []);
+        
+        // Count how many notifications have proper data (collector_name and areas_collected populated)
+        const validNotifications = existingNotifications.filter(n => 
+          n.collector_name && 
+          n.areas_collected && 
+          Array.isArray(n.areas_collected) && 
+          n.areas_collected.length > 0
+        );
+        
+        // If we have valid notifications matching the number of areas, trigger worked correctly
+        if (validNotifications.length === collectionAreas.length && collectionAreas.length > 0) {
+          console.log('✅ Database trigger created separate notifications per area correctly');
+          return { error: null, data: existingNotifications };
+        }
+        
+        // If notifications exist but aren't properly split, delete and recreate
+        console.log('⚠️ Database trigger created notifications but they are not properly split. Recreating...');
+        const { error: deleteError } = await supabase
+          .from('admin_notifications')
+          .delete()
+          .eq('collection_id', collection.id);
+        
+        if (deleteError) {
+          console.warn('⚠️ Error deleting existing notifications:', deleteError);
+        } else {
+          console.log('🗑️ Deleted improperly formatted notifications');
+        }
       }
     }
     

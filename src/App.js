@@ -16,7 +16,6 @@ import { notifyNewCollection } from "./utils/sendPushNotification";
 import {
   fetchAdminNotifications,
   markAdminNotificationRead,
-  createAdminNotificationsForCollection,
 } from "./utils/adminNotifications";
 import pushNotificationService from "./services/pushNotificationService";
 import "./App.css";
@@ -158,22 +157,9 @@ function App() {
           console.log("📦 Collection data:", JSON.stringify(newCollection, null, 2));
           console.log("📦 Areas collected:", newCollection.areas_collected);
 
-          // Small delay to ensure database trigger completes first
-          // Then create admin notifications (one per area) - this will trigger the real-time subscription
-          setTimeout(() => {
-            createAdminNotificationsForCollection(newCollection)
-              .then((result) => {
-                if (result?.error) {
-                  console.error("❌ Error creating admin notifications:", result.error);
-                } else {
-                  console.log(`✅ Created ${result?.data?.length || 0} admin notification(s) for collection ${newCollection.id}`);
-                }
-              })
-              .catch((error) => {
-                console.error("❌ Failed to create admin notifications:", error);
-                console.error("❌ Error stack:", error.stack);
-              });
-          }, 200); // 200ms delay to let database trigger complete
+          // Database trigger automatically creates admin notifications (one per area)
+          // No need to create them here to avoid duplication
+          console.log("✅ Collection inserted - database trigger will create admin notifications automatically");
 
           // Send push notification to admins (one per area)
           console.log("🚀 Triggering collection push notification...");
@@ -192,18 +178,24 @@ function App() {
             });
 
           // Optional: Show browser notification if permission granted
-          // Use unique tag to ensure each notification is shown separately
-          if (Notification.permission === "granted") {
-            const uniqueTag = newCollection.id 
-              ? `browser-collection-${newCollection.id}` 
-              : `browser-collection-${Date.now()}`;
+          // Show one notification per area to match push notifications
+          if (Notification.permission === "granted" && newCollection.areas_collected) {
+            const areas = Array.isArray(newCollection.areas_collected) 
+              ? newCollection.areas_collected 
+              : [newCollection.areas_collected];
             
-            new Notification("G-Waste Collection", {
-              body: `${
-                newCollection.collector_name || "A collector"
-              } completed waste collection`,
-              icon: "/favicon.ico",
-              tag: uniqueTag, // Unique tag prevents notification replacement
+            areas.forEach((area, index) => {
+              const uniqueTag = newCollection.id 
+                ? `browser-collection-${newCollection.id}-${index}-${Date.now()}` 
+                : `browser-collection-${Date.now()}-${index}`;
+              
+              setTimeout(() => {
+                new Notification("G-Waste Collection", {
+                  body: `${newCollection.collector_name || "A collector"} collected from ${area}`,
+                  icon: "/favicon.ico",
+                  tag: uniqueTag, // Unique tag prevents notification replacement
+                });
+              }, index * 200); // Stagger browser notifications
             });
           }
         }
@@ -239,6 +231,54 @@ function App() {
           if (!isMounted) {
             console.log("⚠️ Component not mounted, ignoring notification event");
             return;
+          }
+
+          const newNotification = payload.new;
+          
+          // Send browser push notification for "Area Collection Completed" notifications
+          // Each admin_notification represents one area, so each INSERT = one browser notification
+          if (newNotification.title === "Area Collection Completed") {
+            
+            console.log("📱 Sending browser push notification for area collection...");
+            
+            // Check if browser notifications are supported and permission is granted
+            if ("Notification" in window && Notification.permission === "granted") {
+              // Extract area name from message or metadata
+              let areaName = "an area";
+              if (newNotification.metadata?.area) {
+                areaName = newNotification.metadata.area;
+              } else if (newNotification.areas_collected && Array.isArray(newNotification.areas_collected) && newNotification.areas_collected.length > 0) {
+                areaName = newNotification.areas_collected[0];
+              } else if (newNotification.message) {
+                // Try to extract area from message: "Collector collected from Area Name"
+                const match = newNotification.message.match(/collected from (.+?)(?:\s+\(|$)/i);
+                if (match && match[1]) {
+                  areaName = match[1].trim();
+                }
+              }
+              
+              const collectorName = newNotification.collector_name || newNotification.metadata?.collector_name || "Driver";
+              const uniqueTag = `admin-notification-${newNotification.id}-${Date.now()}`;
+              
+              try {
+                new Notification("Area Collection Completed", {
+                  body: `${collectorName} collected from ${areaName}`,
+                  icon: "/favicon.ico",
+                  badge: "/logo192.png",
+                  tag: uniqueTag, // Unique tag prevents notification replacement
+                  requireInteraction: false,
+                });
+                console.log(`✅ Browser push notification sent for area: ${areaName}`);
+              } catch (error) {
+                console.error("❌ Error showing browser notification:", error);
+              }
+            } else if ("Notification" in window && Notification.permission === "default") {
+              console.log("⚠️ Notification permission not yet granted, skipping browser notification");
+            } else if ("Notification" in window && Notification.permission === "denied") {
+              console.log("⚠️ Notification permission denied by user");
+            } else {
+              console.log("⚠️ Browser notifications not supported");
+            }
           }
 
           console.log("✅ New admin notification created, reloading notifications...");

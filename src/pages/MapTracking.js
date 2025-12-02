@@ -45,6 +45,7 @@ const MapTracking = ({ collectorId, userRole }) => {
   const [collectionsData, setCollectionsData] = useState([]);
   const [selectedTruckForGraph, setSelectedTruckForGraph] = useState(null);
   const [barangayCache, setBarangayCache] = useState({}); // Cache barangay lookups
+  const [userBarangay, setUserBarangay] = useState(null); // Viewer/device barangay
   const [isFullscreen, setIsFullscreen] = useState(false);
   const assignedColorsRef = useRef(new Map()); // Track assigned colors to ensure uniqueness
 
@@ -524,8 +525,8 @@ const MapTracking = ({ collectorId, userRole }) => {
     mapRef.current = mapInstance;
   };
 
-  // Reverse geocode coordinates to get barangay
-  const getBarangayFromCoordinates = async (latitude, longitude) => {
+  // Reverse geocode coordinates to get barangay using OpenCage API
+  const getBarangayFromCoordinates = useCallback(async (latitude, longitude) => {
     const cacheKey = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
     
     // Check cache first
@@ -534,33 +535,39 @@ const MapTracking = ({ collectorId, userRole }) => {
     }
 
     try {
-      // Use Nominatim (OpenStreetMap's geocoding service)
+      // Use OpenCage API for Philippine barangays
+      const OPENCAGE_API_KEY = '47176bb1582f427aa83292b2e2080e34';
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${OPENCAGE_API_KEY}&limit=1&countrycode=ph`,
         {
           headers: {
-            'User-Agent': 'GWaste-Web-App' // Required by Nominatim
+            'Accept': 'application/json'
           }
         }
       );
       
       if (!response.ok) {
-        throw new Error('Geocoding failed');
+        throw new Error('OpenCage geocoding failed');
       }
 
       const data = await response.json();
       
-      // Extract barangay from address components
+      // Extract barangay from OpenCage address components
       let barangay = 'Unknown Location';
       
-      if (data.address) {
-        // Try different possible field names for barangay
-        barangay = data.address.village || 
-                   data.address.suburb || 
-                   data.address.neighbourhood ||
-                   data.address.city_district ||
-                   data.address.town ||
-                   data.address.city ||
+      if (data.results && data.results.length > 0) {
+        const components = data.results[0].components;
+        
+        // Try different possible field names for barangay in Philippines
+        // OpenCage uses different field names for Philippine addresses
+        barangay = components.village ||           // Most common for barangays
+                   components.suburb ||            // Alternative name
+                   components.neighbourhood ||     // Another alternative
+                   components.city_district ||     // City district
+                   components.town ||              // Town name
+                   components.city ||              // City name
+                   components.municipality ||      // Municipality
+                   components.county ||            // County
                    'Unknown Location';
       }
 
@@ -569,10 +576,40 @@ const MapTracking = ({ collectorId, userRole }) => {
       
       return barangay;
     } catch (error) {
-      console.error('Error reverse geocoding:', error);
+      console.error('Error reverse geocoding with OpenCage:', error);
       return 'Unknown Location';
     }
-  };
+  }, [barangayCache]);
+
+  // Get viewer's current device barangay (browser geolocation)
+  const updateUserBarangayFromDevice = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      console.warn('⚠️ Geolocation not supported in this browser');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 Device location:', latitude, longitude);
+          const barangay = await getBarangayFromCoordinates(latitude, longitude);
+          console.log('📍 Device barangay resolved via OpenCage:', barangay);
+          setUserBarangay(barangay);
+        } catch (error) {
+          console.error('❌ Failed to resolve device barangay:', error);
+        }
+      },
+      (error) => {
+        console.warn('⚠️ Geolocation error:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000,
+      }
+    );
+  }, [getBarangayFromCoordinates]);
 
   // Fetch movement data and collections for a specific truck
   const fetchTruckMovementData = useCallback(async (truckId) => {
@@ -760,10 +797,14 @@ const MapTracking = ({ collectorId, userRole }) => {
       setSelectedTruckForGraph(truck);
       setShowGraphCard(true);
       fetchTruckMovementData(truckId);
+
+      // Also update viewer's current barangay when opening graph
+      // so Location label reflects where the admin is currently located
+      updateUserBarangayFromDevice();
     } else {
       console.error('❌ Truck not found for graph:', truckId);
     }
-  }, [trucks, userRole, fetchTruckMovementData]);
+  }, [trucks, userRole, fetchTruckMovementData, updateUserBarangayFromDevice]);
 
   // Make function globally available for popup buttons
   useEffect(() => {
@@ -962,7 +1003,9 @@ const MapTracking = ({ collectorId, userRole }) => {
                   <MapPin size={14} className="location-icon" />
                   <div className="location-content">
                     <span className="location-label">Location</span>
-                    <span className="location-value">{selectedTruckForGraph.barangay || 'Loading...'}</span>
+                    <span className="location-value">
+                      {userBarangay || selectedTruckForGraph.barangay || 'Loading...'}
+                    </span>
                   </div>
                 </div>
                 <div className="location-info-item">
