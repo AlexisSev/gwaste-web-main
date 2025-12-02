@@ -175,10 +175,11 @@ export async function notifyNewCollection(collection) {
   // Send separate notification for each area
   const results = await Promise.allSettled(
     areas.map(async (area, index) => {
-      // Create unique tag for each area notification
+      // Create unique tag for each area notification - include area name in tag for uniqueness
+      const areaSlug = area.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
       const uniqueTag = collection.id 
-        ? `collection-${collection.id}-area-${index}` 
-        : `collection-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+        ? `collection-${collection.id}-${areaSlug}-${index}-${Date.now()}` 
+        : `collection-${Date.now()}-${areaSlug}-${index}-${Math.random().toString(36).substr(2, 9)}`;
       
       const notificationOptions = {
         title: 'New Collection Completed',
@@ -190,6 +191,13 @@ export async function notifyNewCollection(collection) {
       
       console.log(`📤 Sending push notification ${index + 1}/${areas.length} for area: ${area}`);
       console.log('🏷️ Unique notification tag:', uniqueTag);
+      console.log('📦 Notification body:', notificationOptions.body);
+      
+      // Add small delay between notifications to avoid rate limiting
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100 * index));
+      }
+      
       return await sendPushNotification(notificationOptions);
     })
   );

@@ -46,10 +46,26 @@ export async function markAdminNotificationRead(notificationId) {
 /**
  * Create admin notifications for a collection
  * Creates one notification per area collected
+ * Deletes any existing notifications for this collection first (from database trigger)
  */
 export async function createAdminNotificationsForCollection(collection) {
   try {
     console.log('🔔 Creating admin notifications for collection:', collection.id);
+    
+    // First, delete any notifications created by the database trigger for this collection
+    // (The trigger creates one notification per collection, but we want one per area)
+    if (collection.id) {
+      const { error: deleteError } = await supabase
+        .from('admin_notifications')
+        .delete()
+        .eq('collection_id', collection.id);
+      
+      if (deleteError) {
+        console.warn('⚠️ Error deleting existing notifications (may not exist yet):', deleteError);
+      } else {
+        console.log('🗑️ Deleted any existing notifications for this collection');
+      }
+    }
     
     // Get areas collected - expand into array if needed
     let areas = [];
@@ -61,11 +77,13 @@ export async function createAdminNotificationsForCollection(collection) {
         ? collection.areas_collected.split(',').map(a => a.trim()).filter(Boolean)
         : [collection.areas_collected];
     } else {
+      // If no areas, create one notification with placeholder
       areas = ['an area'];
     }
     
     // Get route name if route_id is available
     let routeInfo = '';
+    let routeNumber = null;
     if (collection.route_id) {
       try {
         const { data: route } = await supabase
@@ -76,22 +94,28 @@ export async function createAdminNotificationsForCollection(collection) {
         
         if (route) {
           routeInfo = ` (Route ${route.route})`;
+          routeNumber = route.route;
         }
       } catch (error) {
         console.error('Error fetching route name:', error);
       }
     }
     
-    // Create one notification per area
+    const collectorName = collection.collector_name || 'Driver';
+    
+    // Create one notification per area with all required fields from schema
     const notificationsToInsert = areas.map((area, index) => {
-      const collectorName = collection.collector_name || 'Driver';
       const message = `${collectorName} collected from ${area}${routeInfo}`;
       
       return {
         notification_type: 'collection',
         title: 'New Collection Completed',
         message: message,
-        collection_id: collection.id,
+        collection_id: collection.id || null,
+        collector_name: collectorName,
+        areas_collected: [area], // Single area as array (per schema: text[])
+        waste_type: collection.waste_type || null,
+        route_id: collection.route_id || null,
         read: false,
         metadata: {
           area: area,
@@ -99,12 +123,14 @@ export async function createAdminNotificationsForCollection(collection) {
           total_areas: areas.length,
           collector_name: collectorName,
           waste_type: collection.waste_type || null,
-          route_id: collection.route_id || null
+          route_id: collection.route_id || null,
+          route_number: routeNumber || null
         }
       };
     });
     
     console.log(`📝 Creating ${notificationsToInsert.length} admin notification(s) for ${areas.length} area(s)`);
+    console.log('📋 Areas:', areas);
     
     // Insert all notifications
     const { data, error } = await supabase
@@ -114,6 +140,7 @@ export async function createAdminNotificationsForCollection(collection) {
     
     if (error) {
       console.error('❌ Error creating admin notifications:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
       return { error, data: null };
     }
     
@@ -121,6 +148,7 @@ export async function createAdminNotificationsForCollection(collection) {
     return { error: null, data };
   } catch (error) {
     console.error('❌ Exception creating admin notifications:', error);
+    console.error('❌ Exception stack:', error.stack);
     return { error, data: null };
   }
 }

@@ -156,19 +156,24 @@ function App() {
           const newCollection = payload.new;
           console.log("✅ Processing new collection:", newCollection.collector_name);
           console.log("📦 Collection data:", JSON.stringify(newCollection, null, 2));
+          console.log("📦 Areas collected:", newCollection.areas_collected);
 
-          // Create admin notifications (one per area) - this will trigger the real-time subscription
-          createAdminNotificationsForCollection(newCollection)
-            .then((result) => {
-              if (result?.error) {
-                console.error("❌ Error creating admin notifications:", result.error);
-              } else {
-                console.log(`✅ Created ${result?.data?.length || 0} admin notification(s)`);
-              }
-            })
-            .catch((error) => {
-              console.error("❌ Failed to create admin notifications:", error);
-            });
+          // Small delay to ensure database trigger completes first
+          // Then create admin notifications (one per area) - this will trigger the real-time subscription
+          setTimeout(() => {
+            createAdminNotificationsForCollection(newCollection)
+              .then((result) => {
+                if (result?.error) {
+                  console.error("❌ Error creating admin notifications:", result.error);
+                } else {
+                  console.log(`✅ Created ${result?.data?.length || 0} admin notification(s) for collection ${newCollection.id}`);
+                }
+              })
+              .catch((error) => {
+                console.error("❌ Failed to create admin notifications:", error);
+                console.error("❌ Error stack:", error.stack);
+              });
+          }, 200); // 200ms delay to let database trigger complete
 
           // Send push notification to admins (one per area)
           console.log("🚀 Triggering collection push notification...");
