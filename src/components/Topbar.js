@@ -51,6 +51,53 @@ const Topbar = ({
     };
   }, [profileImg]);
 
+// Helper function to expand notifications with multiple areas into separate entries
+const expandNotificationsByArea = (notifications) => {
+  const expanded = [];
+  
+  notifications.forEach((notification, index) => {
+    const message = notification.message || '';
+    
+    // Check if message contains multiple areas (comma-separated)
+    // Pattern: "collected from Area1, Area2, Area3" or "from Area1, Area2"
+    const areaMatch = message.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
+                     message.match(/from (.+?)(?:\s+\(|$|route)/i);
+    
+    if (areaMatch) {
+      const areasText = areaMatch[1].trim();
+      // Check if it contains commas (multiple areas)
+      if (areasText.includes(',')) {
+        const areas = areasText.split(',').map(a => a.trim()).filter(Boolean);
+        // Create separate notification for each area
+        areas.forEach((area, areaIndex) => {
+          const routeMatch = message.match(/\(Route (.+?)\)/i);
+          const routeInfo = routeMatch ? ` (Route ${routeMatch[1]})` : '';
+          
+          // Extract collector name from message (before "collected from")
+          const collectorMatch = message.match(/^(.+?)\s+collected from/i) || 
+                                message.match(/^(.+?)\s+from/i);
+          const collectorName = collectorMatch ? collectorMatch[1].trim() : 'Driver';
+          
+          expanded.push({
+            ...notification,
+            id: `${notification.id || `collection-${index}`}-area-${areaIndex}`,
+            message: `${collectorName} collected from ${area}${routeInfo}`,
+            original_id: notification.id
+          });
+        });
+      } else {
+        // Single area, keep as is
+        expanded.push(notification);
+      }
+    } else {
+      // No area pattern found, keep as is
+      expanded.push(notification);
+    }
+  });
+  
+  return expanded;
+};
+
 // Normalize notifications received from parent (already real-time data)
 const normalizedNotifications = collectionNotifications.map((notification, index) => ({
   id: notification.id || `collection-${index}`,
@@ -62,63 +109,15 @@ const normalizedNotifications = collectionNotifications.map((notification, index
   metadata: notification.metadata || {}
 }));
 
-// Filter out duplicate notifications based on area_collected
-// Remove notifications that match pattern "drivername has completed collection area_collected"
-const filteredNotifications = normalizedNotifications.filter((notification, index, self) => {
+// Expand notifications with multiple areas into separate entries
+const expandedNotifications = expandNotificationsByArea(normalizedNotifications);
+
+// Remove notifications matching pattern: "drivername has completed collection area_collected"
+// This pattern typically appears as: "[name] has completed collection [area]"
+const filteredNotifications = expandedNotifications.filter((notification) => {
   const message = (notification.message || '').toLowerCase();
-  
-  // Remove notifications matching pattern: "drivername has completed collection area_collected"
-  // This pattern typically appears as: "[name] has completed collection [area]"
   const patternToRemove = /\bhas completed collection\b/i;
-  if (patternToRemove.test(message)) {
-    return false; // Remove this notification
-  }
-  
-  // Extract area_collected from message for deduplication
-  // Look for patterns like "collected from [area]" or "from [area]"
-  const areaMatch = message.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
-                   message.match(/from (.+?)(?:\s+\(|$|route)/i);
-  const areaCollected = areaMatch ? areaMatch[1].trim() : null;
-  
-  // If we found an area, check for duplicates with the same area
-  if (areaCollected) {
-    // Find if there's another notification with the same area
-    const hasDuplicate = self.some((n, i) => {
-      if (i === index) return false;
-      const otherMessage = (n.message || '').toLowerCase();
-      // Skip if the other notification matches the pattern to remove
-      if (patternToRemove.test(otherMessage)) return false;
-      
-      const otherAreaMatch = otherMessage.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
-                            otherMessage.match(/from (.+?)(?:\s+\(|$|route)/i);
-      const otherArea = otherAreaMatch ? otherAreaMatch[1].trim() : null;
-      return otherArea && otherArea.toLowerCase() === areaCollected.toLowerCase();
-    });
-    
-    // If duplicate found, keep only the first one (earlier timestamp)
-    if (hasDuplicate) {
-      const duplicateIndex = self.findIndex((n, i) => {
-        if (i === index) return false;
-        if (patternToRemove.test((n.message || '').toLowerCase())) return false;
-        const otherMessage = (n.message || '').toLowerCase();
-        const otherAreaMatch = otherMessage.match(/collected from (.+?)(?:\s+\(|$|route)/i) || 
-                              otherMessage.match(/from (.+?)(?:\s+\(|$|route)/i);
-        const otherArea = otherAreaMatch ? otherAreaMatch[1].trim() : null;
-        return otherArea && otherArea.toLowerCase() === areaCollected.toLowerCase();
-      });
-      
-      // Keep the one with earlier timestamp, remove the later one
-      if (duplicateIndex !== -1) {
-        const otherNotification = self[duplicateIndex];
-        const thisTime = new Date(notification.timestamp).getTime();
-        const otherTime = new Date(otherNotification.timestamp).getTime();
-        // Keep the earlier one, remove this if it's later
-        return thisTime <= otherTime;
-      }
-    }
-  }
-  
-  return true;
+  return !patternToRemove.test(message);
 });
 
 const notifications = filteredNotifications;

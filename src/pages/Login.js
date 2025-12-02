@@ -46,6 +46,17 @@ const Login = ({ onLogin }) => {
     };
   }, [onLogin]);
 
+  // Optional: Block Embedded Browsers (WebViews) like Facebook, Instagram, Messenger
+  useEffect(() => {
+    const isInAppBrowser = /FBAN|FBAV|Instagram|Messenger/i.test(
+      navigator.userAgent
+    );
+
+    if (isInAppBrowser) {
+      alert("Please open this page in Chrome or Safari to sign in securely.");
+    }
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({ ...prev, [name]: value }));
@@ -86,16 +97,25 @@ const Login = ({ onLogin }) => {
     setLoading(true);
     setError("");
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}`,
+          skipBrowserRedirect: true,
         },
       });
+
+      if (data?.url) {
+        // Force open in Chrome/Safari (not Messenger/Instagram WebView)
+        window.location.href = data.url;
+      }
+      
       if (oauthError) {
         setError(oauthError.message || "Google sign-in failed. Try again.");
         setLoading(false);
       }
+      
+      
       // On success, Supabase will redirect; auth listener above will handle post-login
     } catch (err) {
       setError("Google sign-in failed. Please try again.");

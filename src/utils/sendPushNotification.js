@@ -136,16 +136,22 @@ export async function notifyNewReport(report) {
 
 /**
  * Send push notification for new collection
+ * Creates separate notifications for each area collected
  */
 export async function notifyNewCollection(collection) {
   console.log('🔔 notifyNewCollection called with:', collection);
   
-  // Format areas collected
-  let areasText = 'an area';
+  // Get areas collected - expand into array if needed
+  let areas = [];
   if (collection.areas_collected && Array.isArray(collection.areas_collected) && collection.areas_collected.length > 0) {
-    areasText = collection.areas_collected.join(', ');
+    areas = collection.areas_collected;
   } else if (collection.areas_collected && typeof collection.areas_collected === 'string') {
-    areasText = collection.areas_collected;
+    // If it's a string, try to split by comma, otherwise treat as single area
+    areas = collection.areas_collected.includes(',') 
+      ? collection.areas_collected.split(',').map(a => a.trim()).filter(Boolean)
+      : [collection.areas_collected];
+  } else {
+    areas = ['an area'];
   }
   
   // Get route name if route_id is available
@@ -166,25 +172,33 @@ export async function notifyNewCollection(collection) {
     }
   }
   
-  // Create unique tag for each collection to prevent notification replacement
-  // Use collection ID if available, otherwise use timestamp
-  const uniqueTag = collection.id 
-    ? `collection-${collection.id}` 
-    : `collection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // Send separate notification for each area
+  const results = await Promise.allSettled(
+    areas.map(async (area, index) => {
+      // Create unique tag for each area notification
+      const uniqueTag = collection.id 
+        ? `collection-${collection.id}-area-${index}` 
+        : `collection-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const notificationOptions = {
+        title: 'New Collection Completed',
+        body: `${collection.collector_name || 'Driver'} collected from ${area}${routeInfo}`,
+        icon: '/logo192.png',
+        url: '/Dashboard',
+        tag: uniqueTag, // Unique tag ensures each notification is shown separately
+      };
+      
+      console.log(`📤 Sending push notification ${index + 1}/${areas.length} for area: ${area}`);
+      console.log('🏷️ Unique notification tag:', uniqueTag);
+      return await sendPushNotification(notificationOptions);
+    })
+  );
   
-  const notificationOptions = {
-    title: 'New Collection Completed',
-    body: `${collection.collector_name || 'Driver'} collected from ${areasText}${routeInfo}`,
-    icon: '/logo192.png',
-    url: '/Dashboard',
-    tag: uniqueTag, // Unique tag ensures each notification is shown separately
-  };
+  const successful = results.filter(r => r.status === 'fulfilled').length;
+  const failed = results.filter(r => r.status === 'rejected').length;
   
-  console.log('📤 Sending push notification with options:', notificationOptions);
-  console.log('🏷️ Unique notification tag:', uniqueTag);
-  const result = await sendPushNotification(notificationOptions);
-  console.log('📤 Push notification send result:', result);
-  return result;
+  console.log(`📤 Push notification results: ${successful} successful, ${failed} failed`);
+  return { successful, failed, total: areas.length };
 }
 
 /**

@@ -197,6 +197,42 @@ const Dashboard = ({ onNavigate = () => {} }) => {
     };
   }, []);
 
+  // Helper function to expand collections with multiple areas into separate entries
+  // Each area in areas_collected becomes a separate collection entry for display
+  const expandCollectionsByArea = (collectionsData) => {
+    if (!collectionsData || !Array.isArray(collectionsData)) {
+      return [];
+    }
+    
+    const expanded = [];
+    collectionsData.forEach(collection => {
+      if (!collection) return;
+      
+      const areas = Array.isArray(collection.areas_collected) 
+        ? collection.areas_collected 
+        : (collection.areas_collected ? [collection.areas_collected] : ['N/A']);
+      
+      // If no areas, still create one entry
+      if (areas.length === 0) {
+        areas.push('N/A');
+      }
+      
+      // Create a separate entry for each area
+      areas.forEach((area, index) => {
+        expanded.push({
+          ...collection,
+          id: `${collection.id || 'unknown'}-${index}`, // Unique ID for each expanded entry
+          areas_collected: area, // Single area instead of array
+          original_id: collection.id // Keep reference to original collection
+        });
+      });
+    });
+    return expanded;
+  };
+
+  // Expand collections for display purposes
+  const expandedCollections = expandCollectionsByArea(collections);
+
   // Summary data
   const totalSchedules = routes.length;
   const uniqueDrivers = new Set(routes.map(r => r.driver)).size;
@@ -217,8 +253,8 @@ const Dashboard = ({ onNavigate = () => {} }) => {
   ).filter(Boolean);
   const totalCrew = new Set(crewNames).size;
 
-  // Calculate completed pickups (total collections)
-  const completedPickups = collections.length;
+  // Calculate completed pickups (total collections) - count expanded collections
+  const completedPickups = expandedCollections.length;
 
   // Calculate reports statistics
   const pendingReports = reports.filter(r => r.status === 'pending').length;
@@ -226,7 +262,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
   const totalReportsCount = reports.length;
 
   const todayIso = new Date().toISOString().split('T')[0];
-  const todayCollections = collections.filter(collection => {
+  const todayCollections = expandedCollections.filter(collection => {
     const date = collection.collected_date || collection.created_at?.split('T')[0];
     return date === todayIso;
   }).length;
@@ -238,7 +274,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
     { label: 'Collections today', value: todayCollections, sub: 'Logged' },
   ];
 
-  // Analytics data processing
+  // Analytics data processing - use expanded collections
   const getCollectionsByDate = () => {
     const last7Days = {};
     for (let i = 6; i >= 0; i--) {
@@ -248,7 +284,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
       last7Days[dateStr] = 0;
     }
 
-    collections.forEach(collection => {
+    expandedCollections.forEach(collection => {
       const date = collection.collected_date || collection.created_at?.split('T')[0];
       if (date && last7Days.hasOwnProperty(date)) {
         last7Days[date]++;
@@ -525,7 +561,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                 <h3>Recent completed collections</h3>
                 <p>Latest field submissions</p>
               </div>
-              {collections.length > 5 && (
+              {expandedCollections.length > 5 && (
                 <button
                   type="button"
                   className="view-link"
@@ -559,14 +595,11 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                     ))
                   ) : (
                     <>
-                      {collections.slice(0, 5).map(collection => (
+                      {expandedCollections.slice(0, 5).map(collection => (
                         <tr key={collection.id}>
                           <td>{collection.collector_name || 'Unknown'}</td>
                           <td>
-                            {Array.isArray(collection.areas_collected)
-                              ? collection.areas_collected.slice(0, 2).join(', ') +
-                                (collection.areas_collected.length > 2 ? '...' : '')
-                              : collection.areas_collected || 'N/A'}
+                            {collection.areas_collected || 'N/A'}
                           </td>
                           <td>{collection.waste_type || 'N/A'}</td>
                           <td>
@@ -584,7 +617,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                           </td>
                         </tr>
                       ))}
-                      {collections.length === 0 && (
+                      {expandedCollections.length === 0 && (
                         <tr>
                           <td colSpan="5" className="empty-row">No completed collections yet</td>
                         </tr>
