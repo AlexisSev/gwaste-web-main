@@ -16,6 +16,7 @@ import { notifyNewCollection } from "./utils/sendPushNotification";
 import {
   fetchAdminNotifications,
   markAdminNotificationRead,
+  createAdminNotificationsForCollection,
 } from "./utils/adminNotifications";
 import pushNotificationService from "./services/pushNotificationService";
 import "./App.css";
@@ -156,7 +157,20 @@ function App() {
           console.log("✅ Processing new collection:", newCollection.collector_name);
           console.log("📦 Collection data:", JSON.stringify(newCollection, null, 2));
 
-          // Send push notification to admins
+          // Create admin notifications (one per area) - this will trigger the real-time subscription
+          createAdminNotificationsForCollection(newCollection)
+            .then((result) => {
+              if (result?.error) {
+                console.error("❌ Error creating admin notifications:", result.error);
+              } else {
+                console.log(`✅ Created ${result?.data?.length || 0} admin notification(s)`);
+              }
+            })
+            .catch((error) => {
+              console.error("❌ Failed to create admin notifications:", error);
+            });
+
+          // Send push notification to admins (one per area)
           console.log("🚀 Triggering collection push notification...");
           notifyNewCollection(newCollection)
             .then((result) => {
