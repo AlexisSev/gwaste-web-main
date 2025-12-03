@@ -556,7 +556,6 @@
 .crew-chip {
   display: flex;
   align-items: center;
-  background: #f6f7d4;
   border-radius: 16px;
   padding: 2px 8px 2px 4px;
   box-shadow: 0 1px 3px rgba(56,109,44,0.04);
@@ -569,6 +568,7 @@
   width: 90px;
   outline: none;
   padding: 4px 2px;
+  gap: 10px;
 }
 .chip-remove-btn {
   background: none;

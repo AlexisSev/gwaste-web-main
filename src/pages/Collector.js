@@ -233,7 +233,7 @@ const Collector = () => {
           crew: form.crew.filter((c) => c.firstName.trim() && c.lastName.trim()),
           status: 'active',
         }])
-        .select(); // <-- Add this
+        .select(); 
       console.log("Insert result:", data, error);
       if (error) {
         setFormErrors({ submit: "Error adding collector: " + error.message });
@@ -554,7 +554,7 @@ const Collector = () => {
                   )}
                 </div>
               </div>
-              <div className="modal-form-right">
+              {/* <div className="modal-form-right">
                 <div className="img-preview-container">
                   <div className="img-preview placeholder">
                     <FaCamera className="img-preview-placeholder-icon" />
@@ -573,7 +573,7 @@ const Collector = () => {
                     className="hidden-file-input"
                   />
                 </div>
-              </div>
+              </div> */}
               {formErrors.submit && (
                 <div className="form-error form-error-submit" role="alert">
                   <span aria-hidden="true">⚠️</span> {formErrors.submit}
