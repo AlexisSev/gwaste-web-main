@@ -571,7 +571,7 @@ export default function RoutePerformanceAI() {
       }
 
       if (!data || data.length === 0) {
-        setError('No route performance data available. Make sure you have collections with route_id set.');
+        setError('No route performance data available.');
         setLoading(false);
         return;
       }
