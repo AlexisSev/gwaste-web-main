@@ -27,7 +27,8 @@ const navItems = [
 const reportsItems = [
   { key: "Reports", label: "Issues", icon: AlertTriangle, indicator: true },
   { key: "History", label: "History", icon: HistoryIcon },
-  { key: "RoutePerformanceAI", label: "Prediction", icon: Brain },
+  // { key: "RoutePerformanceAI", label: "Prediction", icon: Brain },
+  { key: "WastePrediction", label: "Waste AI", icon: Brain },
 ];
 
 const Sidebar = ({

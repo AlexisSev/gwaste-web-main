@@ -9,6 +9,7 @@ import Collector from "./pages/Collector";
 import ResidentIssues from "./pages/ResidentIssues";
 import History from "./pages/History";
 import RoutePerformanceAI from "./pages/RoutePerformanceAI";
+import WastePrediction from "./pages/WastePrediction";
 import Login from "./pages/Login";
 import LogoutModal from "./components/LogoutModal";
 import NotificationPrompt from "./components/NotificationPrompt";
@@ -523,6 +524,8 @@ function App() {
         return <History />;
       case "RoutePerformanceAI":
         return <RoutePerformanceAI />;
+      case "WastePrediction":
+        return <WastePrediction />;
       case "Settings":
         return <Settings adminName={adminName} adminEmail={adminEmail} />;
       default:
