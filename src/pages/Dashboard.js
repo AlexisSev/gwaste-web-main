@@ -20,9 +20,9 @@ function formatTime12h(timeStr) {
   return `${hour}:${m} ${ampm}`;
 }
 
-function SummaryCard({ icon, label, value, color = '#336A29' }) {
+function SummaryCard({ icon, label, value, color = '#336A29',  bgColor }) {
   return (
-    <div className="summary-card" style={{ '--summary-accent': color }}>
+    <div className="summary-card" style={{ '--summary-accent': color, background: bgColor }}>
       <div className="summary-card__icon">
         {icon}
       </div>
@@ -389,12 +389,12 @@ const Dashboard = ({ onNavigate = () => {} }) => {
             ))
           ) : (
             <>
-              <SummaryCard icon={<FaCalendarAlt />} label="Total schedules" value={totalSchedules} color="#71C66B" />
-              <SummaryCard icon={<FaRoute />} label="Routes" value={uniqueRoutes.length} color="#52A65E" />
-              <SummaryCard icon={<FaUserTie />} label="Drivers" value={uniqueDrivers} color="#3F8F5D" />
-              <SummaryCard icon={<FaUsers />} label="Crew members" value={totalCrew} color="#2F6B4A" />
-              <SummaryCard icon={<FaCheckCircle />} label="Completed pickups" value={completedPickups} color="#1E9E63" />
-              <SummaryCard icon={<FaExclamationCircle />} label="Pending reports" value={pendingReports} color="#E3B341" />
+              <SummaryCard icon={<FaCalendarAlt />} label="Total schedules" value={totalSchedules} color="#71C66B" bgColor="#ffff" />
+              <SummaryCard icon={<FaRoute />} label="Routes" value={uniqueRoutes.length} color="#52A65E" bgColor="#ffff" />
+              <SummaryCard icon={<FaUserTie />} label="Drivers" value={uniqueDrivers} color="#3F8F5D" bgColor="#ffff" />
+              <SummaryCard icon={<FaUsers />} label="Crew members" value={totalCrew} color="#2F6B4A" bgColor="#ffff" />
+              <SummaryCard icon={<FaCheckCircle />} label="Completed pickups" value={completedPickups} color="#1E9E63" bgColor="#ffff" />
+              <SummaryCard icon={<FaExclamationCircle />} label="Pending reports" value={pendingReports} color="#E3B341" bgColor="#ffff" />
             </>
           )}
         </section>
@@ -533,18 +533,12 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                     </div>
                     <span>{totalReportsCount ? Math.round((resolvedReports / totalReportsCount) * 100) : 0}%</span>
                   </div>
-                  <div className="progress-bar">
-                    <span style={{ width: `${totalReportsCount ? (resolvedReports / totalReportsCount) * 100 : 0}%` }} />
-                  </div>
                   <div className="progress-row">
                     <div>
                       <p>Pending reports</p>
                       <small>{pendingReports} items</small>
                     </div>
                     <span>{totalReportsCount ? Math.round((pendingReports / totalReportsCount) * 100) : 0}%</span>
-                  </div>
-                  <div className="progress-bar muted">
-                    <span style={{ width: `${totalReportsCount ? (pendingReports / totalReportsCount) * 100 : 0}%` }} />
                   </div>
                 </div>
               </>
@@ -560,15 +554,6 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                 <h3>Schedules</h3>
                 <p>Upcoming routes and crews</p>
               </div>
-              {routes.length > 6 && (
-                <button
-                  type="button"
-                  className="view-link"
-                  onClick={() => onNavigate("Schedule")}
-                >
-                  View all
-                </button>
-              )}
             </div>
             <div className="table-scroll">
               <table className="data-table">
@@ -620,15 +605,6 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                 <h3>Recent completed collections</h3>
                 <p>Latest field submissions</p>
               </div>
-              {expandedCollections.length > 5 && (
-                <button
-                  type="button"
-                  className="view-link"
-                  onClick={() => onNavigate("Reports")}
-                >
-                  View all
-                </button>
-              )}
             </div>
             <div className="table-scroll">
               <table className="data-table">
@@ -696,15 +672,6 @@ const Dashboard = ({ onNavigate = () => {} }) => {
                 <h3>Recent reports</h3>
                 <p>Community submissions</p>
               </div>
-              {reports.length > 5 && (
-                <button
-                  type="button"
-                  className="view-link"
-                  onClick={() => onNavigate("Reports")}
-                >
-                  View all
-                </button>
-              )}
             </div>
             <div className="table-scroll">
               <table className="data-table">

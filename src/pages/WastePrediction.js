@@ -360,7 +360,7 @@ const WastePrediction = () => {
                             <h3>24-Hour Waste Prediction</h3>
                             <p>AI-powered forecast of waste generation patterns</p>
                         </div>
-                        <button
+                        {/* <button
                             className="primary-btn"
                             onClick={runPrediction}
                             disabled={modelLoading}
@@ -371,7 +371,7 @@ const WastePrediction = () => {
                                     Processing...
                                 </>
                             ) : 'Run Prediction'}
-                        </button>
+                        </button> */}
                     </div>
 
                     <ResponsiveContainer width="100%" height={300}>
