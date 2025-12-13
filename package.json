@@ -29,6 +29,7 @@
     "firebase-admin": "^13.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.554.0",
+    "maplibre-gl": "^5.14.0",
     "react": "^19.1.0",
     "react-day-picker": "^9.11.3",
     "react-dom": "^19.1.0",

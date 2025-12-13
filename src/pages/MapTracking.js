@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { supabase } from "../supabaseClient";
 import "./MapTracking.css";
 import PageHero from "../components/PageHero";
@@ -23,13 +23,7 @@ import {
   Minimize2,
 } from "lucide-react";
 
-// Fix for Leaflet icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  // iconRetinaUrl: require("leaflet/dist/images/  marker-icon-2x.png"),
-  iconUrl: require("leaflet/dist/images/marker-icon.png"),
-  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
-});
+// MapLibre GL replaces Leaflet for 3D buildings and tilting support
 
 // Helper function to check if a string is a valid UUID
 const isValidUUID = (str) => {
@@ -143,7 +137,7 @@ const MapTracking = ({ collectorId, userRole }) => {
   useEffect(() => {
     // Clear existing markers and data when collector changes
     Object.values(truckMarkersRef.current).forEach((marker) => {
-      if (map) map.removeLayer(marker);
+      if (marker && marker.remove) marker.remove();
     });
     truckMarkersRef.current = {};
     driverCacheRef.current = {};
@@ -236,88 +230,36 @@ const MapTracking = ({ collectorId, userRole }) => {
 
       // Update or create marker
       if (truckMarkersRef.current[id]) {
+        // Update existing marker
         const marker = truckMarkersRef.current[id];
-        // Ensure icon color is up to date and matches the stored color
-        const currentColor = trucksDataRef.current[id]?.color || color;
-        marker.setIcon(
-          L.divIcon({
-            className: "truck-marker",
-            html: `<div style="width:32px;height:32px;background-color:${currentColor};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚛</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16],
-          })
-        );
-        const from = marker.getLatLng();
-        const to = L.latLng(coords[0], coords[1]);
-        const durationMs = 600;
-        const startTs = performance.now();
-        if (markerAnimationsRef.current[id]) {
-          cancelAnimationFrame(markerAnimationsRef.current[id]);
+        const markerColor = trucksDataRef.current[id]?.color || color;
+        const el = marker.getElement();
+        const expectedHTML = `<div style="width:32px;height:32px;background-color:${markerColor};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚛</div>`;
+        if (el.innerHTML !== expectedHTML) {
+          el.innerHTML = expectedHTML;
         }
-        const step = (nowTs) => {
-          const t = Math.min(1, (nowTs - startTs) / durationMs);
-          const lat = from.lat + (to.lat - from.lat) * t;
-          const lng = from.lng + (to.lng - from.lng) * t;
-          marker.setLatLng([lat, lng]);
-          if (t < 1) {
-            markerAnimationsRef.current[id] = requestAnimationFrame(step);
-          }
-        };
-        markerAnimationsRef.current[id] = requestAnimationFrame(step);
-        // const driverDisplayName = driverInfo.driver || (trucksDataRef.current[id] && trucksDataRef.current[id].driverName) || "Driver";
-        // const popupHtml = `
-        //   <div style="text-align:center;min-width:160px">
-        //     ${
-        //       driverInfo.profile_image
-        //         ? `<img src="${driverInfo.profile_image}" alt="${driverDisplayName}" style="width:48px;height:48px;border-radius:50%;margin-bottom:6px"/>`
-        //         : ""
-        //     }
-        //     <h4 style="margin:4px 0">${driverDisplayName}</h4>
-        //   </div>`;
-        // marker.setPopupContent(popupHtml);
-
-        // Add click handler to existing marker for admin users to open graph (only if not already added)
-        if (userRole === "admin" && !marker._graphHandlerAdded) {
-          marker.off("click"); // Remove any existing click handlers
-          marker.on("click", (e) => {
-            console.log("🚛 Existing truck marker clicked for admin:", id);
-            handleOpenGraph(id);
-            // Prevent default popup behavior
-            e.originalEvent.stopPropagation();
-          });
-          marker._graphHandlerAdded = true;
-        }
+        // Animations removed for simplicity - instant updates instead
+        marker.setLngLat([longitude, latitude]);
       } else {
-        // Use the assigned color for new markers
+        // Create new marker
         const markerColor = color;
-        const truckIcon = L.divIcon({
-          className: "truck-marker",
-          html: `<div style="width:32px;height:32px;background-color:${markerColor};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚛</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        });
-        const marker = L.marker(coords, { icon: truckIcon }).addTo(map);
-        // const driverDisplayName2 = driverInfo.driver || (trucksDataRef.current[id] && trucksDataRef.current[id].driverName) || "Driver";
-        // const popupHtml = `
-        //   <div style="text-align:center;min-width:160px">
-        //     ${
-        //       driverInfo.profile_image
-        // ? `<img src="${driverInfo.profile_image}" alt="${driverDisplayName2}" style="width:48px;height:48px;border-radius:50%;margin-bottom:6px"/>`
-        //         : "🚛"
-        //     }
-        //     <h4 style="margin:4px 0">${driverDisplayName2}</h4>
-        //   </div>`;
-        // marker.bindPopup(popupHtml);
+        const el = document.createElement('div');
+        el.className = 'truck-marker';
+        el.innerHTML = `<div style="width:32px;height:32px;background-color:${markerColor};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">🚛</div>`;
+        el.style.width = '32px';
+        el.style.height = '32px';
 
-        // Add click handler to marker for admin users to open graph
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([longitude, latitude])
+          .addTo(map);
+
+        // Add click handler for admin users to open graph
         if (userRole === "admin") {
-          marker.on("click", (e) => {
+          marker.on('click', (e) => {
             console.log("🚛 Truck marker clicked for admin:", id);
             handleOpenGraph(id);
-            // Prevent default popup behavior
             e.originalEvent.stopPropagation();
           });
-          marker._graphHandlerAdded = true;
         }
 
         truckMarkersRef.current[id] = marker;
@@ -350,7 +292,7 @@ const MapTracking = ({ collectorId, userRole }) => {
       const id = row.collector_id || row.truck_id || row.id;
       if (!id) return;
       if (truckMarkersRef.current[id]) {
-        map.removeLayer(truckMarkersRef.current[id]);
+        truckMarkersRef.current[id].remove();
         delete truckMarkersRef.current[id];
       }
       delete trucksDataRef.current[id];
@@ -550,13 +492,33 @@ const MapTracking = ({ collectorId, userRole }) => {
 
   const initializeMap = () => {
     if (mapRef.current) return;
-    const mapInstance = L.map("map", {
-      zoomControl: false, // Remove default zoom controls
-      attributionControl: false, // Remove Leaflet attribution badge
-    }).setView([11.0517, 123.9866], 13);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "", // Empty attribution
-    }).addTo(mapInstance);
+    const mapInstance = new maplibregl.Map({
+      container: "map",
+      style: `https://api.maptiler.com/maps/streets/style.json?key=g3VtfcpqNpVZJtfaXXcB`,
+      center: [123.9866, 11.0517], // lng, lat
+      zoom: 13,
+      pitch: 50,
+      bearing: 0,
+    });
+    // mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    mapInstance.on("load", () => {
+      // Add 3D buildings layer
+      mapInstance.addLayer({
+        'id': '3d-buildings',
+        'source': 'maptiler',
+        'source-layer': 'building',
+        'type': 'fill-extrusion',
+        'minzoom': 15,
+        'paint': {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'render_height'],
+          'fill-extrusion-base': ['get', 'render_min_height'],
+          'fill-extrusion-opacity': 0.6
+        }
+      }, 'building');
+    });
+
     setMap(mapInstance);
     mapRef.current = mapInstance;
   };
@@ -1103,15 +1065,6 @@ const MapTracking = ({ collectorId, userRole }) => {
                 <div className="map-popup-actions">
                   <button
                     className="detail-btn primary"
-                    onClick={() => {
-                      const marker = truckMarkersRef.current[t.id];
-                      if (marker) marker.openPopup();
-                    }}
-                  >
-                    Open Popup
-                  </button>
-                  <button
-                    className="detail-btn secondary"
                     onClick={() => setSelectedTruckId(null)}
                   >
                     Close
