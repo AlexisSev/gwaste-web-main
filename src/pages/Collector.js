@@ -6,39 +6,25 @@ import { FaCamera, FaEdit, FaEye, FaEyeSlash, FaEnvelope, FaPhone } from 'react-
 import "./Collector.css";
 import PageHero from "../components/PageHero";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+  validateNewCollector,
+  validateCollectorUpdate,
+  fetchCollectorsForConflictCheck,
+  fetchRoutesForCollectorConflictCheck
+} from "../services/collectorConflictService";
+import {
+  processCollectorFormData,
+  processCollectorUpdateData,
+  formatCollectorName,
+  resolveCollectorImage,
+  formatCollectorDate,
+  validateCollectorForm,
+  isCollectorFormValid,
+  getCollectorSuccessMessage,
+  getCollectorSuccessContent
+} from "../utils/collectorDataUtils";
 import defaultProfileImage from "../Cooked.jpg";
-
-// Helper to remove all routes for a driver
-// eslint-disable-next-line no-unused-vars
-async function removeRoutesForDriver(driverName) {
-  await supabase
-    .from("routes")
-    .delete()
-    .eq("driver", driverName);
-}
-
-const formatDate = (value) => {
-  if (!value) return "—";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "—";
-  return parsed.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
-};
-
-const resolveCollectorImage = (collector) => {
-  const rawImage =
-    collector?.profile_image ||
-    collector?.profileImage ||
-    collector?.profile_image_base64 ||
-    collector?.profileImageBase64;
-
-  if (!rawImage) return defaultProfileImage;
-  if (typeof rawImage === "string") {
-    if (rawImage.startsWith("http")) return rawImage;
-    if (rawImage.startsWith("data:image")) return rawImage;
-    return `data:image/jpeg;base64,${rawImage}`;
-  }
-  return defaultProfileImage;
-};
+import { createNewCollector, updateExistingCollector } from "../services/collectorSubmissionService";
 
 const Collector = () => {
   const [search, setSearch] = useState("");
@@ -137,115 +123,54 @@ const Collector = () => {
       return { ...prev, crew };
     });
   };
-  const validate = () => {
-    const errors = {};
-    if (!form.firstName) errors.firstName = "First name required";
-    if (!form.lastName) errors.lastName = "Last name required";
-    if (!form.contact) errors.contact = "Contact number required";
-    if (!form.password) errors.password = "Password required";
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
   const handleAddCollector = async (e) => {
     e.preventDefault();
     setAddLoading(true);
-    if (!validate()) { setAddLoading(false); return; }
-    
+
+    // Basic form validation
+    const errors = validateCollectorForm(form);
+    if (!isCollectorFormValid(errors)) {
+      setFormErrors(errors);
+      setAddLoading(false);
+      return;
+    }
+
     try {
-      // Fetch the latest collectors from Supabase for duplicate check
-      const { data: latestCollectors } = await supabase.from("collectors").select("*");
-      // Fetch all routes to check crew assignments
-      const { data: allRoutes } = await supabase.from("routes").select("*");
-      
-      // Gather existing names by role (case-insensitive)
-      const existingDriverNames = (latestCollectors || [])
-        .map(c => (c.driver || '').toLowerCase().trim())
-        .filter(Boolean);
-      const existingCrewNames = (latestCollectors || [])
-        .flatMap(c => (c.crew || []).map(member =>
-          (member.firstName && member.lastName)
-            ? (member.firstName + ' ' + member.lastName).toLowerCase().trim()
-            : ''
-        ))
-        .filter(Boolean);
-      
-      // New driver name
-      const newDriverName = (form.firstName + ' ' + form.lastName).toLowerCase();
-      
-      // New crew names
-      const newCrewNames = form.crew
-        .filter(c => c.firstName.trim() && c.lastName.trim())
-        .map(c => (c.firstName + ' ' + c.lastName).toLowerCase());
-      
-      // Check duplicates with role separation to avoid false positives
-      if (existingDriverNames.includes(newDriverName)) {
-        setFormErrors({ driver: "This driver already exists." });
+      // Fetch data for conflict checking
+      const { data: latestCollectors } = await fetchCollectorsForConflictCheck();
+      const { data: allRoutes } = await fetchRoutesForCollectorConflictCheck();
+
+      if (!latestCollectors || !allRoutes) {
+        setFormErrors({ submit: "Error fetching data for validation" });
         setAddLoading(false);
         return;
       }
-      if (newCrewNames.some(name => existingCrewNames.includes(name))) {
-        setFormErrors({ crew: "One or more crew members already exist." });
+
+      // Check for conflicts and duplicates
+      const conflicts = validateNewCollector(form, latestCollectors, allRoutes);
+      if (conflicts.length > 0) {
+        // Set the first conflict as an error
+        const primaryConflict = conflicts[0];
+        setFormErrors({ [primaryConflict.type]: primaryConflict.message });
         setAddLoading(false);
         return;
       }
-      
-      // Check if crew members are already assigned to routes
-      const assignedCrewMembers = [];
-      for (const route of allRoutes || []) {
-        if (route.crew && Array.isArray(route.crew)) {
-          for (const crewMember of route.crew) {
-            const crewName = typeof crewMember === 'string' 
-              ? crewMember.toLowerCase() 
-              : (crewMember.firstName && crewMember.lastName 
-                ? (crewMember.firstName + ' ' + crewMember.lastName).toLowerCase() 
-                : '');
-            
-            if (newCrewNames.includes(crewName)) {
-              assignedCrewMembers.push({
-                name: crewName,
-                route: route.route,
-                driver: route.driver
-              });
-            }
-          }
-        }
-      }
-      
-      // If crew members are already assigned, show error
-      if (assignedCrewMembers.length > 0) {
-        const crewList = assignedCrewMembers.map(c => `${c.name} (Route ${c.route} - ${c.driver})`).join(', ');
-        setFormErrors({ 
-          crew: `The following crew members are already assigned to routes: ${crewList}` 
-        });
-        setAddLoading(false);
-        return;
-      }
-      
-      // If all validations pass, add the collector
-      const { data, error } = await supabase
-        .from("collectors")
-        .insert([{
-          firstName: form.firstName,
-          lastName: form.lastName,
-          contact: form.contact,
-          password: form.password,
-          driver: form.firstName + ' ' + form.lastName,
-          crew: form.crew.filter((c) => c.firstName.trim() && c.lastName.trim()),
-          status: 'active',
-        }])
-        .select(); 
-      console.log("Insert result:", data, error);
-      if (error) {
-        setFormErrors({ submit: "Error adding collector: " + error.message });
+
+      // Process and submit the collector
+      const processedData = processCollectorFormData(form);
+      const result = await createNewCollector(processedData);
+
+      if (!result.success) {
+        setFormErrors({ submit: `Error adding collector: ${result.error.message || JSON.stringify(result.error)}` });
       } else {
-        // After successful add
+        // Success
         setSuccessModalOpen(true);
         closeAddModal();
-        await fetchCollectors();
       }
     } catch (err) {
-      setFormErrors({ submit: "Error adding collector" });
+      setFormErrors({ submit: `Error adding collector: ${err.message || JSON.stringify(err)}` });
     }
+
     setAddLoading(false);
   };
 
@@ -331,7 +256,7 @@ const Collector = () => {
           const fullName = collector.driver || `${collector.firstName || ""} ${collector.lastName || ""}`.trim() || "Unnamed collector";
           const roleLabel = collector.role || "Collection Driver";
           const department = collector.department || "Operations Team";
-          const hired = formatDate(collector.created_at);
+          const hired = formatCollectorDate(collector.created_at);
           const phone = collector.contact || "No contact number";
 
           return (
@@ -693,65 +618,39 @@ const Collector = () => {
               className="modal-form-grid redesigned-edit-form edit-modal-form"
               onSubmit={async (e) => {
                 e.preventDefault();
+
                 try {
-                  // Fetch all routes to check crew assignments
-                  const { data: allRoutes } = await supabase.from("routes").select("*");
-                  
-                  // Get the updated crew names and intended driver name
-                  const updatedCrewNames = (editModal.collector.crew || [])
-                    .filter(c => c.firstName.trim() && c.lastName.trim())
-                    .map(c => (c.firstName + ' ' + c.lastName).toLowerCase());
-                  const intendedDriverName = (editModal.collector.firstName + ' ' + editModal.collector.lastName)
-                    .toLowerCase()
-                    .trim();
-                  
-                  // Check if crew members are already assigned to other routes
-                  const assignedCrewMembers = [];
-                  for (const route of allRoutes || []) {
-                    if (route.crew && Array.isArray(route.crew)) {
-                      for (const crewMember of route.crew) {
-                        const crewName = typeof crewMember === 'string' 
-                          ? crewMember.toLowerCase() 
-                          : (crewMember.firstName && crewMember.lastName 
-                            ? (crewMember.firstName + ' ' + crewMember.lastName).toLowerCase() 
-                            : '');
-                        
-                        if (updatedCrewNames.includes(crewName)) {
-                          // Allow if this crew is assigned to a route under the same driver being edited
-                          const routeDriverName = (route.driver || '').toLowerCase().trim();
-                          if (routeDriverName === intendedDriverName) {
-                            continue;
-                          }
-                          assignedCrewMembers.push({
-                            name: crewName,
-                            route: route.route,
-                            driver: route.driver
-                          });
-                        }
-                      }
-                    }
+                  // Fetch routes for conflict checking
+                  const { data: allRoutes } = await fetchRoutesForCollectorConflictCheck();
+
+                  if (!allRoutes) {
+                    alert("Error fetching data for validation");
+                    return;
                   }
-                  
-                  // If crew members are already assigned, show error
-                  if (assignedCrewMembers.length > 0) {
-                    const crewList = assignedCrewMembers.map(c => `${c.name} (Route ${c.route} - ${c.driver})`).join(', ');
+
+                  // Check for conflicts in the update
+                  const conflicts = validateCollectorUpdate(editModal.collector, allRoutes);
+                  if (conflicts.length > 0) {
+                    const crewList = conflicts[0].assignedCrewMembers
+                      .map(c => `${c.name} (Route ${c.route} - ${c.driver})`)
+                      .join(', ');
                     alert(`Cannot update: The following crew members are already assigned to routes: ${crewList}`);
                     return;
                   }
-                  
-                  await supabase.from("collectors").update({
-                    status: editModal.collector.status,
-                    crew: (editModal.collector.crew || []).filter((c) => c.firstName.trim() && c.lastName.trim()),
-                    firstName: editModal.collector.firstName,
-                    lastName: editModal.collector.lastName,
-                    contact: editModal.collector.contact,
-                    driver: editModal.collector.firstName + ' ' + editModal.collector.lastName,
-                  }).eq("id", editModal.collector.id).select();
-                  // After successful edit
-                  setEditModal({ open: false, collector: null });
-                  setEditSuccessModalOpen(true);
+
+                  // Process update data and submit
+                  const updateData = processCollectorUpdateData(editModal.collector);
+                  const result = await updateExistingCollector(editModal.collector.id, updateData);
+
+                  if (!result.success) {
+                    alert(`Error updating collector: ${result.error.message || JSON.stringify(result.error)}`);
+                  } else {
+                    // Success
+                    setEditModal({ open: false, collector: null });
+                    setEditSuccessModalOpen(true);
+                  }
                 } catch (err) {
-                  alert("Error updating status: " + (err && err.message ? err.message : JSON.stringify(err)));
+                  alert(`Error updating collector: ${err.message || JSON.stringify(err)}`);
                 }
               }}
             >

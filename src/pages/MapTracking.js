@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -22,6 +25,39 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
+import {
+  initializeMap,
+  fetchTruckLocations,
+  setupTruckSubscription,
+  startPolling,
+  upsertTruckMarker,
+  removeTruckMarker,
+  cleanupMapTracking
+} from "../services/mapTrackingService";
+import {
+  fetchTruckMovementData,
+  processMovementHistory,
+  processCollectionsData,
+  findCollectorId
+} from "../services/movementTrackingService";
+import {
+  getBarangayFromCoordinates,
+  updateUserBarangayFromDevice
+} from "../services/geocodingService";
+import {
+  isTruckOnline,
+  formatTruckTimestamp,
+  filterTruckLocations,
+  sortTrucksByUpdateTime
+} from "../utils/mapUtils";
+import {
+  buildGraphData,
+  processCollectionsHistory,
+  findCollectionMatches,
+  calculateGraphStatistics,
+  createCollectionReferenceLines,
+  validateGraphData
+} from "../utils/graphDataUtils";
 
 // MapLibre GL replaces Leaflet for 3D buildings and tilting support
 
@@ -40,7 +76,7 @@ const MapTracking = ({ collectorId, userRole }) => {
   const trucksDataRef = useRef({}); // Latest trucks data keyed by id
   const [trucks, setTrucks] = useState([]); // all trucks for list view
   const [selectedTruckId, setSelectedTruckId] = useState(null);
-  const markerAnimationsRef = useRef({});
+  // Removed unused markerAnimationsRef
   const pollingRef = useRef(null);
   const [showGraphCard, setShowGraphCard] = useState(false);
   const [movementData, setMovementData] = useState([]);
@@ -51,83 +87,8 @@ const MapTracking = ({ collectorId, userRole }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const assignedColorsRef = useRef(new Map()); // Track assigned colors to ensure uniqueness
 
-  // Threshold for considering a truck offline (in minutes)
+  // Configuration constants
   const OFFLINE_THRESHOLD_MINUTES = 5;
-
-  // Helper function to check if a truck is online (updated within threshold)
-  const isTruckOnline = (updatedAt) => {
-    if (!updatedAt) return false;
-    const updatedTime = new Date(updatedAt).getTime();
-    const now = Date.now();
-    const thresholdMs = OFFLINE_THRESHOLD_MINUTES * 60 * 1000;
-    return now - updatedTime <= thresholdMs;
-  };
-
-  // Deterministic color per truck id - expanded palette for better distinction
-  const getColorForId = (id) => {
-    // Expanded color palette with 25 distinct, vibrant colors
-    const palette = [
-      "#e74c3c", // red
-      "#3498db", // bright blue
-      "#2ecc71", // green
-      "#f39c12", // orange
-      "#9b59b6", // purple
-      "#1abc9c", // turquoise
-      "#e67e22", // dark orange
-      "#34495e", // dark blue-gray
-      "#16a085", // teal
-      "#c0392b", // dark red
-      "#2980b9", // blue
-      "#27ae60", // dark green
-      "#d35400", // burnt orange
-      "#8e44ad", // violet
-      "#f1c40f", // yellow
-      "#e91e63", // pink
-      "#00bcd4", // cyan
-      "#ff5722", // deep orange
-      "#795548", // brown
-      "#607d8b", // blue-gray
-      "#4caf50", // light green
-      "#ff9800", // amber
-      "#3f51b5", // indigo
-      "#009688", // teal-green
-      "#ffeb3b", // yellow
-    ];
-
-    // Check if this ID already has an assigned color
-    if (assignedColorsRef.current.has(id)) {
-      return assignedColorsRef.current.get(id);
-    }
-
-    // Calculate hash for deterministic color assignment
-    const s = String(id);
-    let hash = 0;
-    for (let i = 0; i < s.length; i += 1) {
-      hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
-    }
-
-    // Get initial color from palette
-    let colorIndex = hash % palette.length;
-    let color = palette[colorIndex];
-
-    // If color is already assigned to another truck, find next available color
-    const usedColors = new Set(Array.from(assignedColorsRef.current.values()));
-    if (usedColors.has(color)) {
-      // Find first available color in palette
-      for (let i = 0; i < palette.length; i++) {
-        const nextIndex = (colorIndex + i) % palette.length;
-        const nextColor = palette[nextIndex];
-        if (!usedColors.has(nextColor)) {
-          color = nextColor;
-          break;
-        }
-      }
-    }
-
-    // Assign and cache the color for this ID
-    assignedColorsRef.current.set(id, color);
-    return color;
-  };
 
   useEffect(() => {
     initializeMap();
@@ -171,10 +132,10 @@ const MapTracking = ({ collectorId, userRole }) => {
 
       const coords = [latitude, longitude];
 
-      // Get color - use stored color if available, otherwise get new color
+      // Get color - use stored color if available, otherwise use default
       let color = trucksDataRef.current[id]?.color;
       if (!color) {
-        color = getColorForId(id);
+        color = "#3498db"; // Default blue color from service context
       }
 
       // Fetch driver info from Supabase collectors if not cached
@@ -523,300 +484,9 @@ const MapTracking = ({ collectorId, userRole }) => {
     mapRef.current = mapInstance;
   };
 
-  // Reverse geocode coordinates to get barangay using OpenCage API
-  const getBarangayFromCoordinates = useCallback(
-    async (latitude, longitude) => {
-      const cacheKey = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+  // Geocoding functions now handled by services
 
-      // Check cache first
-      if (barangayCache[cacheKey]) {
-        return barangayCache[cacheKey];
-      }
-
-      try {
-        // Use OpenCage API for Philippine barangays
-        const OPENCAGE_API_KEY = "47176bb1582f427aa83292b2e2080e34";
-        const response = await fetch(
-          `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${OPENCAGE_API_KEY}&limit=1&countrycode=ph`,
-          {
-            headers: {
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("OpenCage geocoding failed");
-        }
-
-        const data = await response.json();
-
-        // Extract barangay from OpenCage address components
-        let barangay = "Unknown Location";
-
-        if (data.results && data.results.length > 0) {
-          const components = data.results[0].components;
-
-          // Try different possible field names for barangay in Philippines
-          // OpenCage uses different field names for Philippine addresses
-          barangay =
-            components.village || // Most common for barangays
-            components.suburb || // Alternative name
-            components.neighbourhood || // Another alternative
-            components.city_district || // City district
-            components.town || // Town name
-            components.city || // City name
-            components.municipality || // Municipality
-            components.county || // County
-            "Unknown Location";
-        }
-
-        // Cache the result
-        setBarangayCache((prev) => ({ ...prev, [cacheKey]: barangay }));
-
-        return barangay;
-      } catch (error) {
-        console.error("Error reverse geocoding with OpenCage:", error);
-        return "Unknown Location";
-      }
-    },
-    [barangayCache]
-  );
-
-  // Get viewer's current device barangay (browser geolocation)
-  const updateUserBarangayFromDevice = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      console.warn("⚠️ Geolocation not supported in this browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          console.log("📍 Device location:", latitude, longitude);
-          const barangay = await getBarangayFromCoordinates(
-            latitude,
-            longitude
-          );
-          console.log("📍 Device barangay resolved via OpenCage:", barangay);
-          setUserBarangay(barangay);
-        } catch (error) {
-          console.error("❌ Failed to resolve device barangay:", error);
-        }
-      },
-      (error) => {
-        console.warn("⚠️ Geolocation error:", error);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 60000,
-      }
-    );
-  }, [getBarangayFromCoordinates]);
-
-  // Fetch movement data and collections for a specific truck
-  const fetchTruckMovementData = useCallback(async (truckId) => {
-    if (!truckId) return;
-
-    try {
-      // Get the truck data from trucksDataRef to avoid dependency on trucks state
-      const truck = trucksDataRef.current[truckId];
-      if (!truck) {
-        console.warn("Truck not found in trucksDataRef:", truckId);
-        return;
-      }
-
-      // Get collector_id from truck data (already stored in trucksDataRef)
-      let collectorId = truck.collector_id || truckId;
-
-      // If we don't have collector_id, try to find it from trucklocation table
-      if (!truck.collector_id) {
-        // Build query - properly quote string values to avoid UUID parsing errors
-        const { data: truckLocationData, error: locationError } = await supabase
-          .from("trucklocation")
-          .select("collector_id, location_id")
-          .eq("status", "active")
-          .or(`collector_id.eq."${truckId}",location_id.eq."${truckId}"`)
-          .limit(1);
-
-        if (
-          !locationError &&
-          truckLocationData &&
-          truckLocationData.length > 0
-        ) {
-          collectorId = truckLocationData[0].collector_id || truckId;
-        }
-      }
-
-      if (!collectorId) {
-        console.error("Could not determine collector_id for truck:", truckId);
-        return;
-      }
-
-      // Fetch truck location history (last 24 hours)
-      const yesterday = new Date();
-      yesterday.setHours(yesterday.getHours() - 24);
-
-      const { data: movementHistory, error: movementError } = await supabase
-        .from("trucklocation")
-        .select("latitude, longitude, updated_at")
-        .eq("collector_id", collectorId)
-        .gte("updated_at", yesterday.toISOString())
-        .order("updated_at", { ascending: true });
-
-      if (movementError) {
-        console.error("Error fetching movement history:", movementError);
-      } else {
-        const processedMovement = [];
-        const STOPPED_THRESHOLD_METERS = 50; 
-
-        const calculateDistance = (lat1, lon1, lat2, lon2) => {
-          const R = 6371000; // Earth's radius in meters
-          const dLat = ((lat2 - lat1) * Math.PI) / 180;
-          const dLon = ((lon2 - lon1) * Math.PI) / 180;
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos((lat1 * Math.PI) / 180) *
-              Math.cos((lat2 * Math.PI) / 180) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          return R * c; // Distance in meters
-        };
-
-        if (movementHistory && movementHistory.length > 0) {
-          let currentStopLocation = null;
-          let accumulatedStopTime = 0; // in milliseconds
-
-          movementHistory.forEach((point, index) => {
-            const time = new Date(point.updated_at);
-            const timestamp = time.getTime();
-
-            if (index === 0) {
-              // First point - initialize
-              currentStopLocation = {
-                lat: point.latitude,
-                lon: point.longitude,
-              };
-              processedMovement.push({
-                time: time.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-                timestamp: timestamp,
-                movement: 0, 
-                distance: 0,
-                latitude: point.latitude,
-                longitude: point.longitude,
-              });
-            } else {
-              const prevPoint = movementHistory[index - 1];
-              const distance = calculateDistance(
-                prevPoint.latitude,
-                prevPoint.longitude,
-                point.latitude,
-                point.longitude
-              );
-
-              const timeDiff =
-                timestamp - new Date(prevPoint.updated_at).getTime(); // milliseconds
-
-              if (distance < STOPPED_THRESHOLD_METERS) {
-                // Truck is stopped (at collection site)
-                if (currentStopLocation) {
-                  // Check if still at the same stop location
-                  const stopDistance = calculateDistance(
-                    currentStopLocation.lat,
-                    currentStopLocation.lon,
-                    point.latitude,
-                    point.longitude
-                  );
-
-                  if (stopDistance < STOPPED_THRESHOLD_METERS) {
-                    // Still at same stop - accumulate time
-                    accumulatedStopTime += timeDiff;
-                  } else {
-                    // Moved to a new stop location
-                    currentStopLocation = {
-                      lat: point.latitude,
-                      lon: point.longitude,
-                    };
-                    accumulatedStopTime = timeDiff;
-                  }
-                } else {
-                  // Starting a new stop
-                  currentStopLocation = {
-                    lat: point.latitude,
-                    lon: point.longitude,
-                  };
-                  accumulatedStopTime = timeDiff;
-                }
-
-                // Convert accumulated time to minutes for display
-                const timeSpentMinutes = accumulatedStopTime / (1000 * 60);
-                processedMovement.push({
-                  time: time.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                  timestamp: timestamp,
-                  movement: Math.max(timeSpentMinutes, 0.2), 
-                  distance: distance,
-                  latitude: point.latitude,
-                  longitude: point.longitude,
-                });
-              } else {
-                // Truck is moving
-                currentStopLocation = null;
-                accumulatedStopTime = 0;
-                processedMovement.push({
-                  time: time.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                  timestamp: timestamp,
-                  movement: 0, // Low value when moving
-                  distance: distance,
-                  latitude: point.latitude,
-                  longitude: point.longitude,
-                });
-              }
-            }
-          });
-        }
-
-        setMovementData(processedMovement);
-      }
-
-      // Fetch collections for this collector (last 24 hours)
-      const { data: collections, error: collectionsError } = await supabase
-        .from("collections")
-        .select("collected_at, areas_collected, waste_type")
-        .eq("collector_name", truck.driverName)
-        .gte("collected_at", yesterday.toISOString())
-        .order("collected_at", { ascending: true });
-
-      if (collectionsError) {
-        console.error("Error fetching collections:", collectionsError);
-      } else {
-        // Process collections data
-        const processedCollections = (collections || []).map((collection) => ({
-          timestamp: new Date(collection.collected_at).getTime(),
-          time: new Date(collection.collected_at).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          areas: collection.areas_collected || [],
-          wasteType: collection.waste_type || "Unknown",
-        }));
-        setCollectionsData(processedCollections);
-      }
-    } catch (error) {
-      console.error("Error fetching truck movement data:", error);
-    }
-  }, []); // Empty deps: uses refs and setState functions which are stable
+  // Movement tracking functions now handled by services
 
   // Fetch graph data immediately when the selected truck changes, and then set up a periodic refresh.
   useEffect(() => {

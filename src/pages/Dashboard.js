@@ -1,24 +1,22 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+import React from "react";
 import "./Dashboard.css";
 import "../App.css";
 import PageHero from "../components/PageHero";
+import { useDashboardData } from "../hooks/useDashboardData";
+import {
+  formatTime12h,
+  expandCollectionsByArea,
+  sortCollectionsByDate,
+  calculateDashboardStats,
+  getCollectionsByDate,
+  calculateWeeklyAnalytics
+} from "../utils/dashboardUtils";
 import { Skeleton } from "../components/ui/skeleton";
 import { FaCalendarAlt, FaRoute, FaUserTie, FaUsers, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Area, AreaChart
 } from 'recharts';
-
-function formatTime12h(timeStr) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(":");
-  let hour = parseInt(h, 10);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12;
-  if (hour === 0) hour = 12;
-  return `${hour}:${m} ${ampm}`;
-}
 
 function SummaryCard({ icon, label, value, color = '#336A29',  bgColor }) {
   return (
@@ -35,335 +33,32 @@ function SummaryCard({ icon, label, value, color = '#336A29',  bgColor }) {
 }
 
 const Dashboard = ({ onNavigate = () => {} }) => {
-  const [routes, setRoutes] = useState([]);
-  const [collections, setCollections] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let isMounted = true;
-    let isCleaningUp = false;
+  const { routes, collections, reports, loading } = useDashboardData();
 
-    const fetchRoutes = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("routes")
-          .select("*")
-          .order("route", { ascending: true });
-
-        if (error) {
-          console.error("Error fetching routes:", error);
-          return;
-        }
-
-        if (isMounted) {
-          setRoutes(data || []);
-        }
-      } catch (err) {
-        console.error("Error fetching routes:", err);
-      }
-    };
-
-    const fetchCollections = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("collections")
-          .select("*")
-          .order("collected_at", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching collections:", error);
-          return;
-        }
-
-        if (isMounted) {
-          console.log(`📊 Dashboard: Loaded ${data?.length || 0} collections`);
-          setCollections(data || []);
-        }
-      } catch (err) {
-        console.error("Error fetching collections:", err);
-      }
-    };
-
-    const fetchReports = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("reports")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching reports:", error);
-          return;
-        }
-
-        if (isMounted) {
-          setReports(data || []);
-        }
-      } catch (err) {
-        console.error("Error fetching reports:", err);
-      }
-    };
-
-    const fetchAllData = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchRoutes(),
-        fetchCollections(),
-        fetchReports()
-      ]);
-      if (isMounted) {
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
-
-    // Set up real-time subscriptions
-    const routesChannel = supabase
-      .channel("routes-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "routes" },
-        () => {
-          if (isMounted) {
-            fetchRoutes();
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === "CLOSED" && !isCleaningUp) {
-          console.warn("⚠️ Routes subscription closed unexpectedly");
-          if (err) console.error("Routes subscription error:", err);
-        }
-      });
-
-    const collectionsChannel = supabase
-      .channel("dashboard-collections-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "collections" },
-        (payload) => {
-          console.log("📊 Dashboard: Collection change detected:", payload.eventType);
-          if (isMounted) {
-            fetchCollections();
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        console.log("📊 Dashboard collections subscription status:", status);
-        if (status === "SUBSCRIBED") {
-          console.log("✅ Dashboard subscribed to collections changes - analytics will update automatically");
-        } else if (status === "CLOSED" && !isCleaningUp) {
-          console.warn("⚠️ Dashboard collections subscription closed unexpectedly. Real-time updates disabled.");
-          if (err) {
-            console.error("Subscription error:", err);
-          }
-          // Attempt to resubscribe after a delay
-          setTimeout(() => {
-            if (isMounted && !isCleaningUp) {
-              console.log("🔄 Attempting to resubscribe to collections...");
-              collectionsChannel.subscribe();
-            }
-          }, 3000);
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Dashboard collections subscription error:", err);
-        }
-      });
-
-    const reportsChannel = supabase
-      .channel("reports-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "reports" },
-        () => {
-          if (isMounted) {
-            fetchReports();
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === "CLOSED" && !isCleaningUp) {
-          console.warn("⚠️ Reports subscription closed unexpectedly");
-          if (err) console.error("Reports subscription error:", err);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-      isCleaningUp = true; // Mark that we're cleaning up to avoid false warnings
-      supabase.removeChannel(routesChannel);
-      supabase.removeChannel(collectionsChannel);
-      supabase.removeChannel(reportsChannel);
-    };
-  }, []);
-
-  // Helper function to expand collections with multiple areas into separate entries
-  // Each area in areas_collected becomes a separate collection entry for display
-  // Each area gets its own estimated time based on when it was likely collected
-  const expandCollectionsByArea = (collectionsData) => {
-    if (!collectionsData || !Array.isArray(collectionsData)) {
-      return [];
-    }
-    
-    const expanded = [];
-    collectionsData.forEach(collection => {
-      if (!collection) return;
-      
-      const areas = Array.isArray(collection.areas_collected) 
-        ? collection.areas_collected 
-        : (collection.areas_collected ? [collection.areas_collected] : ['N/A']);
-      
-      // If no areas, still create one entry
-      if (areas.length === 0) {
-        areas.push('N/A');
-      }
-      
-      // Get base timestamps
-      const collectedAt = collection.collected_at ? new Date(collection.collected_at) : null;
-      const updatedAt = collection.updated_at ? new Date(collection.updated_at) : null;
-      const createdAt = collection.created_at ? new Date(collection.created_at) : null;
-      
-      // Determine if collection was updated (indicating areas were added later)
-      const wasUpdated = updatedAt && collectedAt && updatedAt.getTime() > collectedAt.getTime() + 1000; // 1 second buffer
-      
-      // Calculate time difference if updated
-      const timeDiff = wasUpdated && areas.length > 1 
-        ? (updatedAt.getTime() - collectedAt.getTime()) / areas.length 
-        : 0;
-      
-      // Create a separate entry for each area with estimated time
-      areas.forEach((area, index) => {
-        // Check if metadata has per-area timestamps (from collector app)
-        const metadata = collection.metadata || {};
-        const areaTimestamps = metadata.area_timestamps || {};
-        const normalizedArea = String(area || '').trim();
-        const areaTimestamp = areaTimestamps[normalizedArea] || 
-                             areaTimestamps[area] ||
-                             Object.values(areaTimestamps).find((ts, idx) => 
-                               Object.keys(areaTimestamps)[idx]?.toLowerCase() === normalizedArea.toLowerCase()
-                             );
-        
-        let estimatedTime;
-        
-        if (areaTimestamp) {
-          // Use exact timestamp from metadata if available
-          estimatedTime = new Date(areaTimestamp);
-        } else {
-          // Estimate time for this area:
-          // - First area: use collected_at (or created_at if collected_at is null)
-          // - Subsequent areas: use collected_at + (index * estimated interval)
-          // - If collection was updated, distribute the time difference across areas
-          estimatedTime = collectedAt || createdAt || new Date();
-          
-          if (areas.length > 1 && index > 0) {
-            if (wasUpdated && timeDiff > 0) {
-              // Distribute the time difference across areas
-              estimatedTime = new Date(collectedAt.getTime() + (timeDiff * index));
-            } else if (collectedAt) {
-              // Estimate 15-30 minutes per area if no update info
-              const minutesPerArea = 20; // Average 20 minutes per area
-              estimatedTime = new Date(collectedAt.getTime() + (index * minutesPerArea * 60 * 1000));
-            }
-          }
-        }
-        
-        expanded.push({
-          ...collection,
-          id: `${collection.id || 'unknown'}-${index}`, // Unique ID for each expanded entry
-          areas_collected: area, // Single area instead of array
-          original_id: collection.id, // Keep reference to original collection
-          // Override collected_at with estimated time for this specific area
-          collected_at: estimatedTime.toISOString(),
-          // Store original collected_at for reference
-          original_collected_at: collection.collected_at
-        });
-      });
-    });
-    return expanded;
-  };
-
-  // Expand collections for display purposes
+  // Process data using utility functions
   const expandedCollections = expandCollectionsByArea(collections);
+  const sortedExpandedCollections = sortCollectionsByDate(expandedCollections);
+  const collectionsByDate = getCollectionsByDate(expandedCollections);
 
-  // Sort expanded collections by estimated collected_at time (most recent first)
-  const sortedExpandedCollections = [...expandedCollections].sort((a, b) => {
-    const timeA = a.collected_at ? new Date(a.collected_at).getTime() : 0;
-    const timeB = b.collected_at ? new Date(b.collected_at).getTime() : 0;
-    return timeB - timeA; // Descending order (newest first)
-  });
+  // Calculate statistics
+  const stats = calculateDashboardStats(routes, expandedCollections, reports);
+  const analytics = calculateWeeklyAnalytics(collectionsByDate);
 
-  // Summary data
-  const totalSchedules = routes.length;
-  const uniqueDrivers = new Set(routes.map(r => r.driver)).size;
-  // Helper to get unique routes by route number
-  const uniqueRoutes = Object.values(
-    routes.reduce((acc, route) => {
-      if (!acc[route.route]) acc[route.route] = route;
-      return acc;
-    }, {})
-  );
-  // For totalCrew, count unique crew members across all uniqueRoutes
-  const crewNames = uniqueRoutes.flatMap(r =>
-    (r.crew || []).map(member =>
-      typeof member === "string"
-        ? member.trim()
-        : [member.firstName, member.lastName].filter(Boolean).join(" ").trim()
-    )
-  ).filter(Boolean);
-  const totalCrew = new Set(crewNames).size;
+  // Destructure for easier access in JSX
+  const {
+    totalSchedules,
+    uniqueRoutes,
+    uniqueDrivers,
+    totalCrew,
+    completedPickups,
+    pendingReports,
+    resolvedReports,
+    totalReportsCount,
+    todayCollections,
+    spotlightStats
+  } = stats;
 
-  // Calculate completed pickups (total collections) - count expanded collections
-  const completedPickups = expandedCollections.length;
-
-  // Calculate reports statistics
-  const pendingReports = reports.filter(r => r.status === 'pending').length;
-  const resolvedReports = reports.filter(r => r.status === 'resolved').length;
-  const totalReportsCount = reports.length;
-
-  const todayIso = new Date().toISOString().split('T')[0];
-  const todayCollections = expandedCollections.filter(collection => {
-    const date = collection.collected_date || collection.created_at?.split('T')[0];
-    return date === todayIso;
-  }).length;
-
-  const spotlightStats = [
-    { label: 'Active routes', value: uniqueRoutes.length, sub: 'Monitored' },
-    { label: 'Drivers', value: uniqueDrivers, sub: 'On duty' },
-    { label: 'Crew members', value: totalCrew, sub: 'Assigned' },
-    { label: 'Collections today', value: todayCollections, sub: 'Logged' },
-  ];
-
-  // Analytics data processing - use expanded collections
-  const getCollectionsByDate = () => {
-    const last7Days = {};
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      last7Days[dateStr] = 0;
-    }
-
-    expandedCollections.forEach(collection => {
-      const date = collection.collected_date || collection.created_at?.split('T')[0];
-      if (date && last7Days.hasOwnProperty(date)) {
-        last7Days[date]++;
-      }
-    });
-
-    return Object.entries(last7Days).map(([date, count]) => ({
-      date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-      collections: count
-    }));
-  };
-
-  // Calculate collections statistics for last 7 days
-  const collectionsByDate = getCollectionsByDate();
-  const last7DaysTotal = collectionsByDate.reduce((sum, day) => sum + day.collections, 0);
-  const averagePerDay = last7DaysTotal > 0 ? (last7DaysTotal / 7).toFixed(1) : 0;
-  const peakDay = collectionsByDate.reduce((max, day) => 
-    day.collections > max.collections ? day : max, 
-    { date: 'N/A', collections: 0 }
-  );
+  const { last7DaysTotal, averagePerDay, peakDay } = analytics;
 
 
   return (
@@ -425,7 +120,7 @@ const Dashboard = ({ onNavigate = () => {} }) => {
             ) : (
               <>
                 <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={getCollectionsByDate()}>
+                  <AreaChart data={collectionsByDate}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="date" stroke="#9aa79f" />
                     <YAxis stroke="#9aa79f" />

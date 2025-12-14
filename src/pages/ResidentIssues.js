@@ -1,9 +1,24 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
 import "./ResidentIssues.css";
 import PageHero from "../components/PageHero";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+  fetchReportsData,
+  fetchResidentsData,
+  createResidentsLookup,
+  setupReportsSubscription,
+  cleanupReportsSubscription,
+  updateReportStatus
+} from "../services/residentIssueService";
+import {
+  formatReportTimestamp,
+  getReportAddress,
+  getReportImages,
+  getReportResidentName,
+  filterReports,
+  getStatusUpdateMessage
+} from "../utils/residentIssueUtils";
 
 const ResidentIssues = () => {
   const [search, setSearch] = useState("");
@@ -17,235 +32,78 @@ const ResidentIssues = () => {
 
   useEffect(() => {
     let isMounted = true;
+    let subscriptionChannel = null;
 
-    const fetchReports = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const { data: reportsData, error: reportsError } = await supabase
-          .from("reports")
-          .select("*")
-          .order("created_at", { ascending: false });
 
-        if (reportsError) {
-          console.error("Error fetching reports:", reportsError);
-        } else if (isMounted) {
-          setReports(reportsData || []);
+        // Fetch reports and residents data
+        const [reportsResult, residentsResult] = await Promise.all([
+          fetchReportsData(),
+          fetchResidentsData()
+        ]);
+
+        if (reportsResult.error) {
+          console.error("Error fetching reports:", reportsResult.error);
+        }
+        if (residentsResult.error) {
+          console.error("Error fetching residents:", residentsResult.error);
+        }
+
+        if (isMounted) {
+          setReports(reportsResult.data || []);
+          setResidents(createResidentsLookup(residentsResult.data));
         }
       } catch (err) {
-        console.error("Error fetching reports:", err);
+        console.error("Unexpected error fetching data:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    const fetchResidents = async () => {
-      try {
-        const { data: residentsData, error: residentsError } = await supabase
-          .from("residents")
-          .select("*");
-        if (residentsError) {
-          console.error("Error fetching residents:", residentsError);
-        } else if (isMounted) {
-          const map = {};
-          (residentsData || []).forEach((r) => {
-            map[r.id] = r;
-          });
-          setResidents(map);
-        }
-      } catch (err) {
-        console.error("Error fetching residents:", err);
+    fetchData();
+
+    // Setup realtime subscription for reports
+    subscriptionChannel = setupReportsSubscription(
+      () => {
+        // Refetch data when reports change
+        fetchData();
+      },
+      (channel) => {
+        subscriptionChannel = channel;
       }
-    };
-
-    fetchReports();
-    fetchResidents();
-
-    // Realtime subscription to reports table changes
-    const channel = supabase
-      .channel("reports-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "reports" },
-        (payload) => {
-          // Simple approach: refetch on any change
-          fetchReports();
-        }
-      )
-      .subscribe();
+    );
 
     return () => {
       isMounted = false;
-      try {
-        supabase.removeChannel(channel);
-      } catch (e) {
-        // ignore
+      if (subscriptionChannel) {
+        cleanupReportsSubscription(subscriptionChannel);
       }
     };
   }, []);
 
-  const filteredReports = reports.filter(
-    (report) =>
-      report.status === activeTab &&
-      ((report.description || "").toLowerCase().includes(search.toLowerCase()) || !search)
-  );
+  const filteredReports = filterReports(reports, activeTab, search);
 
   const handleToggleStatus = async (report) => {
-    const newStatus = report.status === "resolved" ? "pending" : "resolved";
     try {
-      const { error } = await supabase
-        .from("reports")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", report.id);
-      if (error) {
-        console.error("Error updating report status:", error);
-      } else {
-        // Show success message when marking as resolved
-        if (newStatus === "resolved") {
-          setSuccessMessage("Report marked as resolved successfully!");
-          // Auto-hide after 3 seconds
+      const result = await updateReportStatus(report);
+
+      if (result.success) {
+        if (result.wasResolved) {
+          setSuccessMessage(getStatusUpdateMessage(result.wasResolved));
+          // Auto-hide success message after 3 seconds
           setTimeout(() => {
             setSuccessMessage(null);
           }, 3000);
         }
+      } else {
+        console.error("Error updating report status:", result.error);
+        // Could add error notification here if needed
       }
     } catch (err) {
-      console.error(err);
+      console.error("Unexpected error in handleToggleStatus:", err);
     }
-  };
-
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return "N/A";
-    const date = new Date(timestamp);
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
-  };
-
-  const getAddress = (report) => {
-    if (!report) return "Not specified";
-
-    // First try to get address from residents table if we have a resident ID
-    const residentId = report.resident_id || report.residentId || report.userId || report.uid || report.submittedBy;
-    if (residentId && residents[residentId]) {
-      const resident = residents[residentId];
-      // Use correct field name from database schema
-      const residentAddress = resident.resident_address;
-      if (residentAddress && typeof residentAddress === 'string' && residentAddress.trim()) {
-        const trimmed = residentAddress.trim();
-        return trimmed.length > 50 ? trimmed.substring(0, 47) + "..." : trimmed;
-      }
-    }
-
-    // Try various address fields from the report
-    const address = report.location || report.address || report.location_address || report.resident_address;
-
-    if (address && typeof address === 'string' && address.trim()) {
-      // Limit address length for table display
-      const trimmed = address.trim();
-      return trimmed.length > 50 ? trimmed.substring(0, 47) + "..." : trimmed;
-    }
-
-    return "Not specified";
-  };
-
-  const getReportImages = (report) => {
-    if (!report) return [];
-
-    // Check for different possible image field names and formats
-    let images = [];
-
-    // Check for images_base64 field (your actual database field)
-    if (report.images_base64) {
-      if (Array.isArray(report.images_base64)) {
-        images = report.images_base64;
-      } else if (typeof report.images_base64 === 'string') {
-        images = [report.images_base64];
-      } else if (typeof report.images_base64 === 'object') {
-        // Handle JSONB object format
-        const base64Data = report.images_base64;
-        if (base64Data.images && Array.isArray(base64Data.images)) {
-          images = base64Data.images;
-        } else if (base64Data.image) {
-          images = [base64Data.image];
-        } else if (base64Data.data) {
-          images = [base64Data.data];
-        }
-      }
-    }
-    // Check if images field exists as array
-    else if (report.images && Array.isArray(report.images)) {
-      images = report.images;
-    }
-    // Check if image field exists as array
-    else if (report.image && Array.isArray(report.image)) {
-      images = report.image;
-    }
-    // Check if images field exists as single string
-    else if (report.images && typeof report.images === 'string') {
-      images = [report.images];
-    }
-    // Check if image field exists as single string
-    else if (report.image && typeof report.image === 'string') {
-      images = [report.image];
-    }
-    // Check for photo field
-    else if (report.photo && typeof report.photo === 'string') {
-      images = [report.photo];
-    }
-    // Check for picture field
-    else if (report.picture && typeof report.picture === 'string') {
-      images = [report.picture];
-    }
-    // Check for photo_url field
-    else if (report.photo_url && typeof report.photo_url === 'string') {
-      images = [report.photo_url];
-    }
-    // Check for image_url field
-    else if (report.image_url && typeof report.image_url === 'string') {
-      images = [report.image_url];
-    }
-    // Check for base64 images (data:image/...)
-    else if (report.image_base64 && typeof report.image_base64 === 'string') {
-      images = [report.image_base64];
-    }
-
-    // Filter out empty/null values and validate URLs/base64
-    const filteredImages = images.filter(img => {
-      if (!img || typeof img !== 'string') return false;
-      const trimmed = img.trim();
-      if (!trimmed) return false;
-
-      // Check if it's a valid URL, base64 data, or relative path
-      return trimmed.startsWith('http') || trimmed.startsWith('data:image/') || trimmed.startsWith('/');
-    });
-
-    // Debug logging (remove this after confirming it works)
-    if (filteredImages.length === 0 && images.length > 0) {
-      console.log('Report images found but filtered out:', report.id, images);
-    }
-
-    return filteredImages;
-  };
-
-  const getResidentName = (report) => {
-    if (!report) return "Anonymous";
-
-    // First try to get from residents table using various ID fields
-    const id = report.resident_id || report.residentId || report.userId || report.uid || report.submittedBy;
-    if (id && residents[id]) {
-      const r = residents[id];
-      // Use correct field names from database schema
-      const fullName = r.full_name || `${r.first_name || ""} ${r.last_name || ""}`.trim();
-      if (fullName && fullName.trim()) return fullName.trim();
-      if (r.name) return r.name;
-      if (r.email) return r.email;
-    }
-
-
-    // Fallback to report fields
-    const residentName = report.resident_name || report.residentName || report.username || report.user;
-    if (residentName) return residentName;
-
-    // Last resort - try to extract from description or use Anonymous
-    return report.submitted_by || "Anonymous";
   };
 
   return (
@@ -386,9 +244,9 @@ const ResidentIssues = () => {
                         {report.description || "No description"}
                       </div>
                     </td>
-                    <td>{getResidentName(report)}</td>
-                    <td>{getAddress(report)}</td>
-                    <td>{formatTimestamp(report.created_at || report.timestamp)}</td>
+                    <td>{getReportResidentName(report, residents)}</td>
+                    <td>{getReportAddress(report, residents)}</td>
+                    <td>{formatReportTimestamp(report.created_at || report.timestamp)}</td>
                     <td>
                       <div className="report-actions">
                         <button
@@ -431,7 +289,7 @@ const ResidentIssues = () => {
             <div className="modal-content">
               <div className="modal-detail-item">
                 <span className="modal-label">Resident</span>
-                <span className="modal-value">{getResidentName(detailsModal.report)}</span>
+                <span className="modal-value">{getReportResidentName(detailsModal.report, residents)}</span>
               </div>
               <div className="modal-detail-item">
                 <span className="modal-label">Description</span>
@@ -439,7 +297,7 @@ const ResidentIssues = () => {
               </div>
               <div className="modal-detail-item">
                 <span className="modal-label">Address</span>
-                <span className="modal-value">{getAddress(detailsModal.report)}</span>
+                <span className="modal-value">{getReportAddress(detailsModal.report, residents)}</span>
               </div>
               <div className="modal-detail-item">
                 <span className="modal-label">Status</span>
@@ -449,7 +307,7 @@ const ResidentIssues = () => {
               </div>
               <div className="modal-detail-item">
                 <span className="modal-label">Timestamp</span>
-                <span className="modal-value">{formatTimestamp(detailsModal.report.created_at || detailsModal.report.timestamp)}</span>
+                <span className="modal-value">{formatReportTimestamp(detailsModal.report.created_at || detailsModal.report.timestamp)}</span>
               </div>
               {getReportImages(detailsModal.report).length > 0 && (
                 <div className="modal-images-section">
