@@ -1008,12 +1008,16 @@
   background: #fafafa;
   border-radius: 8px;
   transition: all 0.15s ease;
+}
+
+.active-truck-item.clickable {
   cursor: pointer;
 }
 
-.active-truck-item:hover {
+.active-truck-item.clickable:hover {
   background: #f4f4f5;
   transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .active-truck-color-indicator {

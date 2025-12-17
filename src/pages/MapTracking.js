@@ -1017,7 +1017,12 @@ const MapTracking = ({ collectorId, userRole }) => {
           {trucks.length > 0 ? (
             <div className="active-trucks-list">
               {trucks.map((truck) => (
-                <div key={truck.id} className="active-truck-item">
+                <div
+                  key={truck.id}
+                  className="active-truck-item clickable"
+                  onClick={() => handleOpenGraph(truck.id)}
+                  title={`Click to view ${truck.driverName}'s movement graph`}
+                >
                   <div
                     className="active-truck-color-indicator"
                     style={{ backgroundColor: truck.color }}
