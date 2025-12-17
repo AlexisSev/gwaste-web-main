@@ -497,26 +497,13 @@ const MapTracking = ({ collectorId, userRole }) => {
       style: `https://api.maptiler.com/maps/streets/style.json?key=g3VtfcpqNpVZJtfaXXcB`,
       center: [123.9866, 11.0517], // lng, lat
       zoom: 13,
-      pitch: 50,
+      pitch: 0,
       bearing: 0,
     });
     // mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
 
     mapInstance.on("load", () => {
-      // Add 3D buildings layer
-      mapInstance.addLayer({
-        'id': '3d-buildings',
-        'source': 'maptiler',
-        'source-layer': 'building',
-        'type': 'fill-extrusion',
-        'minzoom': 15,
-        'paint': {
-          'fill-extrusion-color': '#aaa',
-          'fill-extrusion-height': ['get', 'render_height'],
-          'fill-extrusion-base': ['get', 'render_min_height'],
-          'fill-extrusion-opacity': 0.6
-        }
-      }, 'building');
+      // 3D buildings layer removed
     });
 
     setMap(mapInstance);
