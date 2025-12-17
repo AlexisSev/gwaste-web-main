@@ -12,7 +12,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -45,9 +45,47 @@ serve(async (req) => {
       });
     }
 
+    // helper to safely parse JSON body (handles empty body)
+    const parseRequestBody = async () => {
+      try {
+        const text = await req.text();
+        if (!text) return {};
+        return JSON.parse(text);
+      } catch (err) {
+        return null; // indicates invalid JSON
+      }
+    };
+
     if (method === "POST") {
       // Add new collector
-      const { firstName, lastName, contact, password, crew, status = 'active' } = await req.json();
+      const parsed = await parseRequestBody();
+      if (parsed === null) {
+        return new Response(JSON.stringify({ success: false, error: "Invalid JSON in request body" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      // If POST with empty body, treat as fetch request (invoked by supabase.functions.invoke)
+      if (!parsed || Object.keys(parsed).length === 0) {
+        const { data, error } = await supabase
+          .from("collectors")
+          .select("*")
+          .order("driver", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching collectors:", error);
+          throw error;
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          data: data || []
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const { firstName, lastName, contact, password, crew, status = 'active' } = parsed;
 
       // Validation
       if (!firstName || !lastName || !contact || !password) {
@@ -186,7 +224,14 @@ serve(async (req) => {
 
     if (method === "PUT") {
       // Update collector
-      const { id, firstName, lastName, contact, status, crew } = await req.json();
+      const parsed = await parseRequestBody();
+      if (parsed === null) {
+        return new Response(JSON.stringify({ success: false, error: "Invalid JSON in request body" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const { id, firstName, lastName, contact, status, crew } = parsed;
 
       if (!id) {
         return new Response(JSON.stringify({
@@ -285,7 +330,14 @@ serve(async (req) => {
 
     if (method === "DELETE") {
       // Delete collector (if needed in future)
-      const { id } = await req.json();
+      const parsed = await parseRequestBody();
+      if (parsed === null) {
+        return new Response(JSON.stringify({ success: false, error: "Invalid JSON in request body" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      const { id } = parsed;
 
       if (!id) {
         return new Response(JSON.stringify({

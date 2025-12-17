@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS"
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
 };
 
 serve(async (req) => {
@@ -15,7 +15,7 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  if (req.method !== "GET") {
+  if (req.method !== "GET" && req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -61,151 +61,14 @@ serve(async (req) => {
       throw reportsError;
     }
 
-    // Calculate dashboard statistics
-    const totalSchedules = routes.length;
-    const uniqueDrivers = new Set(routes.map(r => r.driver)).size;
-    const uniqueRoutes = Object.values(
-      routes.reduce((acc, route) => {
-        if (!acc[route.route]) acc[route.route] = route;
-        return acc;
-      }, {})
-    );
-    const crewNames = uniqueRoutes.flatMap(r =>
-      (r.crew || []).map(member =>
-        typeof member === "string"
-          ? member.trim()
-          : [member.firstName, member.lastName].filter(Boolean).join(" ").trim()
-      )
-    ).filter(Boolean);
-    const totalCrew = new Set(crewNames).size;
-    const pendingReports = reports.filter(r => r.status === 'pending').length;
-    const resolvedReports = reports.filter(r => r.status === 'resolved').length;
-
-    // Calculate collections statistics
-    const todayIso = new Date().toISOString().split('T')[0];
-    const todayCollections = collections.filter(collection => {
-      const date = collection.collected_date || collection.created_at?.split('T')[0];
-      return date === todayIso;
-    }).length;
-
-    // Expand collections by area (same logic as frontend)
-    const expandCollectionsByArea = (collectionsData) => {
-      if (!collectionsData || !Array.isArray(collectionsData)) {
-        return [];
-      }
-
-      const expanded = [];
-      collectionsData.forEach(collection => {
-        if (!collection) return;
-
-        const areas = Array.isArray(collection.areas_collected)
-          ? collection.areas_collected
-          : (collection.areas_collected ? [collection.areas_collected] : ['N/A']);
-
-        if (areas.length === 0) {
-          areas.push('N/A');
-        }
-
-        const collectedAt = collection.collected_at ? new Date(collection.collected_at) : null;
-        const updatedAt = collection.updated_at ? new Date(collection.updated_at) : null;
-        const createdAt = collection.created_at ? new Date(collection.created_at) : null;
-
-        const wasUpdated = updatedAt && collectedAt && updatedAt.getTime() > collectedAt.getTime() + 1000;
-
-        const timeDiff = wasUpdated && areas.length > 1
-          ? (updatedAt.getTime() - collectedAt.getTime()) / areas.length
-          : 0;
-
-        areas.forEach((area, index) => {
-          const metadata = collection.metadata || {};
-          const areaTimestamps = metadata.area_timestamps || {};
-          const normalizedArea = String(area || '').trim();
-          const areaTimestamp = areaTimestamps[normalizedArea] ||
-                               areaTimestamps[area] ||
-                               Object.values(areaTimestamps).find((ts, idx) =>
-                                 Object.keys(areaTimestamps)[idx]?.toLowerCase() === normalizedArea.toLowerCase()
-                               );
-
-          let estimatedTime;
-
-          if (areaTimestamp) {
-            estimatedTime = new Date(areaTimestamp);
-          } else {
-            estimatedTime = collectedAt || createdAt || new Date();
-
-            if (areas.length > 1 && index > 0) {
-              if (wasUpdated && timeDiff > 0) {
-                estimatedTime = new Date(collectedAt.getTime() + (timeDiff * index));
-              } else if (collectedAt) {
-                const minutesPerArea = 20;
-                estimatedTime = new Date(collectedAt.getTime() + (index * minutesPerArea * 60 * 1000));
-              }
-            }
-          }
-
-          expanded.push({
-            ...collection,
-            id: `${collection.id || 'unknown'}-${index}`,
-            areas_collected: area,
-            original_id: collection.id,
-            collected_at: estimatedTime.toISOString(),
-            original_collected_at: collection.collected_at
-          });
-        });
-      });
-      return expanded;
-    };
-
-    const expandedCollections = expandCollectionsByArea(collections);
-    const completedPickups = expandedCollections.length;
-
-    // Calculate collections by date for chart
-    const last7Days = {};
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      last7Days[dateStr] = 0;
-    }
-
-    expandedCollections.forEach(collection => {
-      const date = collection.collected_date || collection.created_at?.split('T')[0];
-      if (date && last7Days.hasOwnProperty(date)) {
-        last7Days[date]++;
-      }
-    });
-
-    const collectionsByDate = Object.entries(last7Days).map(([date, count]) => ({
-      date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
-      collections: count
-    }));
-
-    const last7DaysTotal = collectionsByDate.reduce((sum, day) => sum + day.collections, 0);
-    const averagePerDay = last7DaysTotal > 0 ? (last7DaysTotal / 7).toFixed(1) : 0;
-    const peakDay = collectionsByDate.reduce((max, day) =>
-      day.collections > max.collections ? day : max,
-      { date: 'N/A', collections: 0 }
-    );
-
+    // Return raw data - Dashboard.js handles all expansion and calculations
     return new Response(JSON.stringify({
       success: true,
       data: {
-        routes,
-        collections: expandedCollections,
-        reports,
-        statistics: {
-          totalSchedules,
-          uniqueDrivers,
-          totalCrew,
-          completedPickups,
-          pendingReports,
-          resolvedReports,
-          todayCollections,
-          collectionsByDate,
-          last7DaysTotal,
-          averagePerDay,
-          peakDay: peakDay.collections > 0 ? `${peakDay.collections} (${peakDay.date})` : 'N/A'
-        }
+        routes: routes || [],
+        collections: collections || [],
+        reports: reports || [],
+        statistics: {}
       }
     }), {
       status: 200,

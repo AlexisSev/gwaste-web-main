@@ -28,6 +28,20 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Check for authentication
+  const authHeader = req.headers.get("authorization");
+  const apiKey = req.headers.get("apikey");
+
+  if (!authHeader && !apiKey) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Missing authorization header"
+    }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+
   try {
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
@@ -58,11 +72,46 @@ serve(async (req) => {
     }
 
     if (method === "POST") {
-      // Add new route
+      // Add new route or fetch routes if body is empty
+      let requestData;
+      try {
+        const bodyText = await req.text();
+        requestData = bodyText ? JSON.parse(bodyText) : {};
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Invalid JSON in request body"
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      // If POST with empty body, treat as fetch request
+      if (!requestData || Object.keys(requestData).length === 0) {
+        const { data, error } = await supabase
+          .from("routes")
+          .select("*")
+          .order("route");
+
+        if (error) {
+          console.error("Error fetching routes:", error);
+          throw error;
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          data: data || []
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
       const {
         route, driver, crew, areas, time, endTime, type, frequency, dayOff,
         coordinates, color
-      } = await req.json();
+      } = requestData;
 
       // Validation
       const errors = [];
@@ -241,10 +290,23 @@ serve(async (req) => {
 
     if (method === "PUT") {
       // Update route
+      let requestData;
+      try {
+        requestData = await req.json();
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Invalid JSON in request body"
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
       const {
         id, route, driver, crew, areas, time, endTime, type, frequency, dayOff,
         coordinates, color
-      } = await req.json();
+      } = requestData;
 
       if (!id) {
         return new Response(JSON.stringify({
@@ -431,7 +493,20 @@ serve(async (req) => {
 
     if (method === "DELETE") {
       // Delete route
-      const { id } = await req.json();
+      let requestData;
+      try {
+        requestData = await req.json();
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Invalid JSON in request body"
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const { id } = requestData;
 
       if (!id) {
         return new Response(JSON.stringify({

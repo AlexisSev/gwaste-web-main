@@ -253,10 +253,10 @@ const MapTracking = ({ collectorId, userRole }) => {
           .setLngLat([longitude, latitude])
           .addTo(map);
 
-        // Add click handler for admin users to open graph
-        if (userRole === "admin") {
+        // Add click handler for admin users and collectors to open graph
+        if (userRole === "admin" || (userRole === "collector" && collectorId === id)) {
           marker.on('click', (e) => {
-            console.log("🚛 Truck marker clicked for admin:", id);
+            console.log("🚛 Truck marker clicked for user:", id, "role:", userRole);
             handleOpenGraph(id);
             e.originalEvent.stopPropagation();
           });
@@ -848,10 +848,15 @@ const MapTracking = ({ collectorId, userRole }) => {
     (truckId) => {
       console.log("📊 Opening graph for truck:", truckId);
       console.log("📊 Available trucks:", trucks);
+      console.log("📊 TrucksDataRef keys:", Object.keys(trucksDataRef.current));
       console.log("📊 userRole:", userRole);
 
-      const truck =
-        trucks.find((t) => t.id === truckId) || trucksDataRef.current[truckId];
+      // Try multiple ways to find the truck
+      let truck = trucks.find((t) => t.id === truckId) ||
+                 trucksDataRef.current[truckId] ||
+                 trucks.find((t) => t.collector_id === truckId) ||
+                 trucks.find((t) => String(t.id) === String(truckId));
+
       if (truck) {
         console.log("📊 Found truck data:", truck);
         setSelectedTruckForGraph(truck);
@@ -863,6 +868,8 @@ const MapTracking = ({ collectorId, userRole }) => {
         updateUserBarangayFromDevice();
       } else {
         console.error("❌ Truck not found for graph:", truckId);
+        console.error("❌ Available truck IDs:", trucks.map(t => ({ id: t.id, collector_id: t.collector_id })));
+        console.error("❌ Available trucksDataRef keys:", Object.keys(trucksDataRef.current));
       }
     },
     [trucks, userRole, fetchTruckMovementData, updateUserBarangayFromDevice]
@@ -1076,8 +1083,8 @@ const MapTracking = ({ collectorId, userRole }) => {
         </div>
       )}
 
-      {/* Graph Card Overlay - Only for Admin - Bottom Left Corner */}
-      {userRole === "admin" && showGraphCard && selectedTruckForGraph && (
+      {/* Graph Card Overlay - For Admin and Collectors - Bottom Left Corner */}
+      {(userRole === "admin" || userRole === "collector") && showGraphCard && selectedTruckForGraph && (
         <div className="map-overlay-graph-card graph-card-bottom-left">
           <div className="graph-card-header">
             <div className="graph-card-header-content">
