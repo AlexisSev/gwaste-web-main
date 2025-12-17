@@ -28,36 +28,33 @@ export async function sendPushNotification(options) {
     if (userId) {
       targetUserIds = [userId];
     } else {
-      // Get all admin user IDs
+      // Get all admin user IDs via Edge Function
       console.log('🔍 Fetching admin users for notifications...');
-      const { data: admins, error: adminError } = await supabase
-        .from('admins')
-        .select('id, user_id, name, email'); // Select specific fields
-
-      console.log('📊 Admins query result:', { 
-        count: admins?.length || 0, 
-        admins: admins,
-        error: adminError 
-      });
-      
-      if (adminError) {
-        console.error('❌ Error details:', JSON.stringify(adminError, null, 2));
-      }
+      const { data: adminData, error: adminError } = await supabase.functions.invoke('get-admin-users');
 
       if (adminError) {
-        console.error('❌ Error fetching admins:', adminError);
+        console.error('❌ Error fetching admins via function:', adminError);
         return { error: adminError };
       }
 
-      // Only use user_id field - this must match the user_id in push_subscriptions table
-      // Filter out any admins without a valid user_id
+      if (!adminData?.success) {
+        console.error('❌ Admin users fetch failed:', adminData?.error);
+        return { error: new Error(adminData?.error || "Failed to fetch admin users") };
+      }
+
+      const admins = adminData.data || [];
+      console.log('📊 Admins query result:', {
+        count: admins?.length || 0,
+        admins: admins
+      });
+
+      // Use user_id field - this must match the user_id in push_subscriptions table
       targetUserIds = admins
-        ?.map(admin => admin.user_id) // Only use user_id, not id or email
+        ?.map(admin => admin.user_id)
         .filter(userId => userId != null && userId !== '') || [];
-      
-      console.log('📋 All admins fetched:', admins);
+
       console.log('🎯 Target user IDs found (using user_id only):', targetUserIds);
-      
+
       if (targetUserIds.length === 0 && admins && admins.length > 0) {
         console.warn('⚠️ No admins have a valid user_id field');
         console.warn('📋 Admin records:', admins.map(a => ({ id: a.id, user_id: a.user_id, name: a.name, email: a.email })));
@@ -236,4 +233,3 @@ export async function notifyUnresolvedReports(count) {
     });
   }
 }
-

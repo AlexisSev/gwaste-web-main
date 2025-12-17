@@ -17,24 +17,30 @@ const History = () => {
     const fetchCollections = async () => {
       try {
         setLoading(true);
-        const { data, error: fetchError } = await supabase
-          .from("collections")
-          .select("*")
-          .order("collected_at", { ascending: false });
+        const searchParams = new URLSearchParams();
+        if (search) searchParams.set('search', search);
+        if (dateFilter) searchParams.set('date', dateFilter);
 
-        if (fetchError) {
-          console.error("Error fetching collection history:", fetchError);
-          setError("Failed to load collection history.");
+        const queryString = searchParams.toString();
+        const url = queryString ? `get-collection-history?${queryString}` : 'get-collection-history';
+
+        const { data, error } = await supabase.functions.invoke(url);
+
+        if (error) {
+          console.error("Error fetching collection history:", error);
+          if (isMounted) setError("Failed to load collection history.");
           return;
         }
 
-        if (isMounted) {
-          setCollections(data || []);
+        if (data?.success && isMounted) {
+          setCollections(data.data || []);
           setError("");
+        } else if (isMounted) {
+          setError(data?.error || "Failed to load collection history.");
         }
       } catch (err) {
         console.error("Unexpected error fetching history:", err);
-        setError("Failed to load collection history.");
+        if (isMounted) setError("Failed to load collection history.");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -55,7 +61,7 @@ const History = () => {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [search, dateFilter]);
 
   const filteredCollections = useMemo(() => {
     return (collections || []).filter((collection) => {

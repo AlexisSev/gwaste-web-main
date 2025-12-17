@@ -358,10 +358,7 @@ const Schedule = () => {
 
     const fetchRoutes = async () => {
       try {
-        const { data, error } = await supabase
-          .from("routes")
-          .select("*")
-          .order("route");
+        const { data, error } = await supabase.functions.invoke('manage-schedules');
 
         if (error) {
           console.error("Error fetching routes:", error);
@@ -370,20 +367,28 @@ const Schedule = () => {
             message: getUserFriendlyError(error, "load schedules"),
             severity: "error",
           });
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
 
-        if (isMounted) {
-          setRoutes(data || []);
+        if (data?.success && isMounted) {
+          setRoutes(data.data || []);
           // Always set selectedRoute to the first route if none is selected or if the selected route was deleted
-          if (data && data.length > 0) {
+          if (data.data && data.data.length > 0) {
             setSelectedRoute((prev) =>
-              prev && data.some((r) => r.id === prev) ? prev : data[0].id
+              prev && data.data.some((r) => r.id === prev) ? prev : data.data[0].id
             );
           } else {
             setSelectedRoute(null);
           }
+          setLoading(false);
+        } else if (isMounted) {
+          console.error("Routes fetch failed:", data?.error);
+          setSnackbar({
+            open: true,
+            message: data?.error || "Failed to load schedules",
+            severity: "error",
+          });
           setLoading(false);
         }
       } catch (error) {
@@ -407,7 +412,9 @@ const Schedule = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "routes" },
-        () => fetchRoutes()
+        () => {
+          if (isMounted) fetchRoutes();
+        }
       )
       .subscribe();
 
@@ -684,182 +691,88 @@ const Schedule = () => {
     }
 
     try {
-      // Check for crew assignment conflicts
-      const { data: allRoutes, error: routesError } = await supabase
-        .from("routes")
-        .select("*");
+      // Prepare data for the Edge Function
+      const submitData = {
+        route: form.route,
+        driver: form.driver,
+        crew: Array.isArray(form.crew) ? form.crew : [],
+        areas: Array.isArray(form.areas) ? form.areas : [],
+        time: form.time,
+        endTime: form.endTime,
+        type: form.type,
+        frequency: form.frequency,
+        dayOff: form.dayOff,
+        coordinates: form.coordinates,
+        color: form.color
+      };
 
-      if (routesError) {
-        console.error("Error fetching routes for conflict check:", routesError);
-        setSnackbar({
-          open: true,
-          message: getUserFriendlyError(routesError, "check conflicts"),
-          severity: "error",
-        });
-        return;
-      }
-
-      let newCrewMembers = form.crew || [];
-      if (typeof newCrewMembers === "string") {
-        newCrewMembers = newCrewMembers.split(",").map((c) => c.trim());
-      }
-      newCrewMembers = newCrewMembers.filter((c) => c); // removes blanks
-      // Prevent assigning same driver to multiple routes (unless editing same record)
-      const driverName = (form.driver || "").trim().toLowerCase();
-      if (driverName) {
-        const conflictingDriverRoute = allRoutes.find(
-          (route) =>
-            route.driver &&
-            route.driver.trim().toLowerCase() === driverName &&
-            (!editId || route.id !== editId)
-        );
-        if (conflictingDriverRoute) {
-          setSnackbar({
-            open: true,
-            message: `Driver "${form.driver}" is already assigned to Route ${conflictingDriverRoute.route}. Please select a different driver or edit that route instead.`,
-            severity: "error",
-          });
-          return;
-        }
-      }
-
-      // Check if any crew members are already assigned to other routes
-      const assignedCrewMembers = [];
-      for (const route of allRoutes) {
-        // Skip the current route if editing
-        if (editId && route.id === editId) continue;
-
-        if (route.crew && Array.isArray(route.crew)) {
-          for (const routeCrewMember of route.crew) {
-            for (const newCrewMember of newCrewMembers) {
-              if (routeCrewMember === newCrewMember) {
-                assignedCrewMembers.push({
-                  name: newCrewMember,
-                  route: route.route,
-                  driver: route.driver,
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // If crew members are already assigned, show error
-      if (assignedCrewMembers.length > 0) {
-        const crewList = assignedCrewMembers
-          .map((c) => `${c.name} (Route ${c.route})`)
-          .join("");
-        setSnackbar({
-          open: true,
-          message: `Crew already assigned: ${crewList}`,
-          severity: "error",
-        });
-        return;
-      }
-
-      // Always ensure coordinates is an array
-      let coords = Array.isArray(form.coordinates) ? form.coordinates : [];
-      // If only one coordinate, duplicate it
-      if (coords.length === 1) {
-        coords = [coords[0], coords[0]];
-      }
-      // Clean crew and areas to remove empty/whitespace-only entries
-      const cleanedCrew = (Array.isArray(form.crew) ? form.crew : [])
-        .map((c) => (typeof c === "string" ? c.trim() : c))
-        .filter((c) => (typeof c === "string" ? c.length > 0 : !!c));
-      const cleanedAreas = (Array.isArray(form.areas) ? form.areas : [])
-        .map((a) => (typeof a === "string" ? a.trim() : a))
-        .filter((a) => (typeof a === "string" ? a.length > 0 : !!a));
-
-      // Build payload, only including defined values
-      const normalizedPayload = {};
-      if (form.route !== undefined) normalizedPayload.route = form.route || null;
-      if (form.driver !== undefined) normalizedPayload.driver = form.driver || null;
-      if (form.type !== undefined) normalizedPayload.type = form.type || "";
-      if (form.time !== undefined) normalizedPayload.time = form.time || "";
-      if (form.endTime !== undefined || form.end_time !== undefined) {
-        normalizedPayload.end_time = form.endTime || form.end_time || "";
-      }
-      if (form.frequency !== undefined) normalizedPayload.frequency = form.frequency || "";
-      if (cleanedAreas !== undefined) normalizedPayload.areas = cleanedAreas;
-      if (coords !== undefined) normalizedPayload.coordinates = coords;
-      if (cleanedCrew !== undefined) normalizedPayload.crew = cleanedCrew;
-      if (form.dayOff !== undefined || form.dayoff !== undefined) {
-        normalizedPayload.dayoff = form.dayOff || form.dayoff || "";
-      }
-      if (form.color !== undefined && form.color) {
-        normalizedPayload.color = form.color;
-      }
       if (editId) {
+        // Update existing route
         console.log("🔄 Updating route with ID:", editId);
-        console.log("📦 Payload:", normalizedPayload);
-        
-        // Update without select to avoid RLS issues with SELECT after UPDATE
-        const { error: updateError } = await supabase
-          .from("routes")
-          .update(normalizedPayload)
-          .eq("id", editId);
+        submitData.id = editId;
 
-        if (updateError) {
-          console.error("❌ Error updating route:", updateError);
+        const { data, error } = await supabase.functions.invoke('manage-schedules', {
+          body: submitData
+        });
+
+        if (error) {
+          console.error("❌ Error updating route:", error);
           setSnackbar({
             open: true,
-            message: getUserFriendlyError(updateError, "update schedule"),
+            message: getUserFriendlyError(error, "update schedule"),
             severity: "error",
           });
           return;
         }
 
-        console.log("✅ Update query executed successfully");
-        
+        if (!data?.success) {
+          console.error("Route update failed:", data?.error);
+          setSnackbar({
+            open: true,
+            message: data?.error || "Failed to update schedule",
+            severity: "error",
+          });
+          return;
+        }
+
+        console.log("✅ Update successful");
+
         // Close the edit modal immediately
         closeModal();
-        
+
         // Show success modal immediately
         setSuccessModalType("update");
         setSuccessModalOpen(true);
-        
+
         // Optimistically update the local state
         setRoutes((prevRoutes) =>
           prevRoutes.map((route) =>
-            route.id === editId ? { ...route, ...normalizedPayload } : route
+            route.id === editId ? { ...route, ...data.data } : route
           )
         );
-        
-        // Refetch routes in the background to ensure data consistency
-        supabase
-          .from("routes")
-          .select("*")
-          .order("route")
-          .then(({ data: refreshedRoutes, error: refreshError }) => {
-            if (refreshError) {
-              console.error("⚠️ Error refreshing routes after update:", refreshError);
-              // Silently fail - user already sees success, data will sync on next page load
-              return;
-            }
-            
-            if (refreshedRoutes) {
-              setRoutes(refreshedRoutes);
-              console.log("🔄 Routes refreshed successfully:", refreshedRoutes.length);
-            }
-          });
+
+        // Real-time subscription will handle data consistency
       } else {
-        // Assign a color based on route number or random if not available
-        let color = ROUTE_COLORS[parseInt(form.route, 10) - 1];
-        if (!color) {
-          color = ROUTE_COLORS[Math.floor(Math.random() * ROUTE_COLORS.length)];
-        }
-        const routeWithColor = { ...normalizedPayload, color };
+        // Add new route
+        const { data, error } = await supabase.functions.invoke('manage-schedules', {
+          body: submitData
+        });
 
-        const { error: insertError } = await supabase
-          .from("routes")
-          .insert([routeWithColor]);
-
-        if (insertError) {
-          console.error("Error adding route:", insertError);
+        if (error) {
+          console.error("Error adding route:", error);
           setSnackbar({
             open: true,
-            message: getUserFriendlyError(insertError, "add schedule"),
+            message: getUserFriendlyError(error, "add schedule"),
+            severity: "error",
+          });
+          return;
+        }
+
+        if (!data?.success) {
+          console.error("Route creation failed:", data?.error);
+          setSnackbar({
+            open: true,
+            message: data?.error || "Failed to add schedule",
             severity: "error",
           });
           return;
@@ -868,6 +781,8 @@ const Schedule = () => {
         setSuccessModalType("add");
         setSuccessModalOpen(true); // Show success modal
         closeModal();
+
+        // Real-time subscription will automatically update the routes list
       }
     } catch (err) {
       console.error("Unexpected error in handleSubmit:", err);

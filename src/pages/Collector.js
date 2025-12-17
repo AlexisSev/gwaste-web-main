@@ -65,30 +65,48 @@ const Collector = () => {
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
 
-  // Load collectors from Supabase
+  // Load collectors from Supabase Edge Function
   useEffect(() => {
     let ignore = false;
     const fetchCollectors = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("collectors")
-        .select("*")
-        .order("driver", { ascending: true });
-      if (!error && !ignore) {
-        setCollectors(data || []);
+      try {
+        const { data, error } = await supabase.functions.invoke('manage-collectors');
+
+        if (error) {
+          console.error("Error fetching collectors:", error);
+          if (!ignore) {
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (data?.success && !ignore) {
+          setCollectors(data.data || []);
+        } else if (!ignore) {
+          console.error("Collectors fetch failed:", data?.error);
+        }
+      } catch (err) {
+        console.error("Error in collectors fetch:", err);
       }
+
       if (!ignore) {
         setLoading(false);
       }
-    }
+    };
+
     fetchCollectors();
-    // Optionally, you can use Supabase Realtime for live updates
+
+    // Real-time subscriptions for live updates
     const channel = supabase
       .channel('collectors-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'collectors' }, payload => {
-        fetchCollectors();
+        if (!ignore) {
+          fetchCollectors();
+        }
       })
       .subscribe();
+
     return () => {
       ignore = true;
       supabase.removeChannel(channel);
@@ -150,100 +168,40 @@ const Collector = () => {
     e.preventDefault();
     setAddLoading(true);
     if (!validate()) { setAddLoading(false); return; }
-    
+
     try {
-      // Fetch the latest collectors from Supabase for duplicate check
-      const { data: latestCollectors } = await supabase.from("collectors").select("*");
-      // Fetch all routes to check crew assignments
-      const { data: allRoutes } = await supabase.from("routes").select("*");
-      
-      // Gather existing names by role (case-insensitive)
-      const existingDriverNames = (latestCollectors || [])
-        .map(c => (c.driver || '').toLowerCase().trim())
-        .filter(Boolean);
-      const existingCrewNames = (latestCollectors || [])
-        .flatMap(c => (c.crew || []).map(member =>
-          (member.firstName && member.lastName)
-            ? (member.firstName + ' ' + member.lastName).toLowerCase().trim()
-            : ''
-        ))
-        .filter(Boolean);
-      
-      // New driver name
-      const newDriverName = (form.firstName + ' ' + form.lastName).toLowerCase();
-      
-      // New crew names
-      const newCrewNames = form.crew
-        .filter(c => c.firstName.trim() && c.lastName.trim())
-        .map(c => (c.firstName + ' ' + c.lastName).toLowerCase());
-      
-      // Check duplicates with role separation to avoid false positives
-      if (existingDriverNames.includes(newDriverName)) {
-        setFormErrors({ driver: "This driver already exists." });
-        setAddLoading(false);
-        return;
-      }
-      if (newCrewNames.some(name => existingCrewNames.includes(name))) {
-        setFormErrors({ crew: "One or more crew members already exist." });
-        setAddLoading(false);
-        return;
-      }
-      
-      // Check if crew members are already assigned to routes
-      const assignedCrewMembers = [];
-      for (const route of allRoutes || []) {
-        if (route.crew && Array.isArray(route.crew)) {
-          for (const crewMember of route.crew) {
-            const crewName = typeof crewMember === 'string' 
-              ? crewMember.toLowerCase() 
-              : (crewMember.firstName && crewMember.lastName 
-                ? (crewMember.firstName + ' ' + crewMember.lastName).toLowerCase() 
-                : '');
-            
-            if (newCrewNames.includes(crewName)) {
-              assignedCrewMembers.push({
-                name: crewName,
-                route: route.route,
-                driver: route.driver
-              });
-            }
-          }
-        }
-      }
-      
-      // If crew members are already assigned, show error
-      if (assignedCrewMembers.length > 0) {
-        const crewList = assignedCrewMembers.map(c => `${c.name} (Route ${c.route} - ${c.driver})`).join(', ');
-        setFormErrors({ 
-          crew: `The following crew members are already assigned to routes: ${crewList}` 
-        });
-        setAddLoading(false);
-        return;
-      }
-      
-      // If all validations pass, add the collector
-      const { data, error } = await supabase
-        .from("collectors")
-        .insert([{
+      const { data, error } = await supabase.functions.invoke('manage-collectors', {
+        body: {
           firstName: form.firstName,
           lastName: form.lastName,
           contact: form.contact,
           password: form.password,
-          driver: form.firstName + ' ' + form.lastName,
-          crew: form.crew.filter((c) => c.firstName.trim() && c.lastName.trim()),
-          status: 'active',
-        }])
-        .select(); 
-      console.log("Insert result:", data, error);
+          crew: form.crew.filter((c) => c.firstName?.trim() && c.lastName?.trim()),
+          status: 'active'
+        }
+      });
+
       if (error) {
+        console.error("Error adding collector:", error);
         setFormErrors({ submit: "Error adding collector: " + error.message });
-      } else {
-        // After successful add
-        setSuccessModalOpen(true);
-        closeAddModal();
-        await fetchCollectors();
+        setAddLoading(false);
+        return;
       }
+
+      if (!data?.success) {
+        console.error("Collector creation failed:", data?.error);
+        setFormErrors({ submit: data?.error || "Error adding collector" });
+        setAddLoading(false);
+        return;
+      }
+
+      // Success
+      setSuccessModalOpen(true);
+      closeAddModal();
+      // The real-time subscription will automatically update the collectors list
+
     } catch (err) {
+      console.error("Error in add collector:", err);
       setFormErrors({ submit: "Error adding collector" });
     }
     setAddLoading(false);
@@ -694,64 +652,37 @@ const Collector = () => {
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  // Fetch all routes to check crew assignments
-                  const { data: allRoutes } = await supabase.from("routes").select("*");
-                  
-                  // Get the updated crew names and intended driver name
-                  const updatedCrewNames = (editModal.collector.crew || [])
-                    .filter(c => c.firstName.trim() && c.lastName.trim())
-                    .map(c => (c.firstName + ' ' + c.lastName).toLowerCase());
-                  const intendedDriverName = (editModal.collector.firstName + ' ' + editModal.collector.lastName)
-                    .toLowerCase()
-                    .trim();
-                  
-                  // Check if crew members are already assigned to other routes
-                  const assignedCrewMembers = [];
-                  for (const route of allRoutes || []) {
-                    if (route.crew && Array.isArray(route.crew)) {
-                      for (const crewMember of route.crew) {
-                        const crewName = typeof crewMember === 'string' 
-                          ? crewMember.toLowerCase() 
-                          : (crewMember.firstName && crewMember.lastName 
-                            ? (crewMember.firstName + ' ' + crewMember.lastName).toLowerCase() 
-                            : '');
-                        
-                        if (updatedCrewNames.includes(crewName)) {
-                          // Allow if this crew is assigned to a route under the same driver being edited
-                          const routeDriverName = (route.driver || '').toLowerCase().trim();
-                          if (routeDriverName === intendedDriverName) {
-                            continue;
-                          }
-                          assignedCrewMembers.push({
-                            name: crewName,
-                            route: route.route,
-                            driver: route.driver
-                          });
-                        }
-                      }
+                  const { data, error } = await supabase.functions.invoke('manage-collectors', {
+                    body: {
+                      id: editModal.collector.id,
+                      firstName: editModal.collector.firstName,
+                      lastName: editModal.collector.lastName,
+                      contact: editModal.collector.contact,
+                      status: editModal.collector.status,
+                      crew: (editModal.collector.crew || []).filter((c) => c.firstName?.trim() && c.lastName?.trim()),
                     }
-                  }
-                  
-                  // If crew members are already assigned, show error
-                  if (assignedCrewMembers.length > 0) {
-                    const crewList = assignedCrewMembers.map(c => `${c.name} (Route ${c.route} - ${c.driver})`).join(', ');
-                    alert(`Cannot update: The following crew members are already assigned to routes: ${crewList}`);
+                  });
+
+                  if (error) {
+                    console.error("Error updating collector:", error);
+                    alert("Error updating collector: " + error.message);
                     return;
                   }
-                  
-                  await supabase.from("collectors").update({
-                    status: editModal.collector.status,
-                    crew: (editModal.collector.crew || []).filter((c) => c.firstName.trim() && c.lastName.trim()),
-                    firstName: editModal.collector.firstName,
-                    lastName: editModal.collector.lastName,
-                    contact: editModal.collector.contact,
-                    driver: editModal.collector.firstName + ' ' + editModal.collector.lastName,
-                  }).eq("id", editModal.collector.id).select();
-                  // After successful edit
+
+                  if (!data?.success) {
+                    console.error("Collector update failed:", data?.error);
+                    alert(data?.error || "Error updating collector");
+                    return;
+                  }
+
+                  // Success
                   setEditModal({ open: false, collector: null });
                   setEditSuccessModalOpen(true);
+                  // The real-time subscription will automatically update the collectors list
+
                 } catch (err) {
-                  alert("Error updating status: " + (err && err.message ? err.message : JSON.stringify(err)));
+                  console.error("Error in update collector:", err);
+                  alert("Error updating collector: " + (err?.message || JSON.stringify(err)));
                 }
               }}
             >

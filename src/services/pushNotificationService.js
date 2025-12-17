@@ -269,52 +269,27 @@ class PushNotificationService {
 
     try {
       const subscriptionData = this.subscriptionToJSON(subscription);
+      const deviceInfo = this.getDeviceInfo();
 
-      // Check if subscription already exists
-      const { data: existing } = await supabase
-        .from('push_subscriptions')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('endpoint', subscriptionData.endpoint)
-        .single();
-
-      if (existing) {
-        // Update existing subscription
-        const { error: updateError } = await supabase
-          .from('push_subscriptions')
-          .update({
-            subscription_data: subscriptionData,
-            device_info: this.getDeviceInfo(),
-            last_used: new Date().toISOString(),
-            is_active: true,
-          })
-          .eq('id', existing.id);
-
-        if (updateError) {
-          console.error('Error updating subscription:', updateError);
-          return false;
+      const { data, error } = await supabase.functions.invoke('manage-push-subscriptions', {
+        body: {
+          userId,
+          subscriptionData,
+          deviceInfo
         }
-        return true;
-      } else {
-        // Insert new subscription
-        const { error: insertError } = await supabase
-          .from('push_subscriptions')
-          .insert({
-            user_id: userId,
-            endpoint: subscriptionData.endpoint,
-            subscription_data: subscriptionData,
-            device_info: this.getDeviceInfo(),
-            created_at: new Date().toISOString(),
-            last_used: new Date().toISOString(),
-            is_active: true,
-          });
+      });
 
-        if (insertError) {
-          console.error('Error inserting subscription:', insertError);
-          return false;
-        }
-        return true;
+      if (error) {
+        console.error('Error saving subscription via function:', error);
+        return false;
       }
+
+      if (!data?.success) {
+        console.error('Function returned error:', data?.error);
+        return false;
+      }
+
+      return true;
     } catch (error) {
       console.error('Error saving subscription to database:', error);
       return false;

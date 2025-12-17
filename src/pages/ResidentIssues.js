@@ -21,15 +21,27 @@ const ResidentIssues = () => {
     const fetchReports = async () => {
       try {
         setLoading(true);
-        const { data: reportsData, error: reportsError } = await supabase
-          .from("reports")
-          .select("*")
-          .order("created_at", { ascending: false });
+        const searchParams = new URLSearchParams();
+        if (activeTab !== 'all') searchParams.set('status', activeTab);
+        if (search) searchParams.set('search', search);
 
-        if (reportsError) {
-          console.error("Error fetching reports:", reportsError);
-        } else if (isMounted) {
-          setReports(reportsData || []);
+        const queryString = searchParams.toString();
+        const url = queryString ? `get-reports?${queryString}` : 'get-reports';
+
+        const { data, error } = await supabase.functions.invoke(url);
+
+        if (error) {
+          console.error("Error fetching reports:", error);
+        } else if (data?.success && isMounted) {
+          setReports(data.data || []);
+          // Create residents map from processed data
+          const residentsMap = {};
+          (data.data || []).forEach(report => {
+            if (report.residentId) {
+              residentsMap[report.residentId] = { id: report.residentId };
+            }
+          });
+          setResidents(residentsMap);
         }
       } catch (err) {
         console.error("Error fetching reports:", err);
@@ -38,27 +50,7 @@ const ResidentIssues = () => {
       }
     };
 
-    const fetchResidents = async () => {
-      try {
-        const { data: residentsData, error: residentsError } = await supabase
-          .from("residents")
-          .select("*");
-        if (residentsError) {
-          console.error("Error fetching residents:", residentsError);
-        } else if (isMounted) {
-          const map = {};
-          (residentsData || []).forEach((r) => {
-            map[r.id] = r;
-          });
-          setResidents(map);
-        }
-      } catch (err) {
-        console.error("Error fetching residents:", err);
-      }
-    };
-
     fetchReports();
-    fetchResidents();
 
     // Realtime subscription to reports table changes
     const channel = supabase
@@ -81,7 +73,7 @@ const ResidentIssues = () => {
         // ignore
       }
     };
-  }, []);
+  }, [activeTab, search]);
 
   const filteredReports = reports.filter(
     (report) =>
@@ -92,13 +84,13 @@ const ResidentIssues = () => {
   const handleToggleStatus = async (report) => {
     const newStatus = report.status === "resolved" ? "pending" : "resolved";
     try {
-      const { error } = await supabase
-        .from("reports")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", report.id);
+      const { data, error } = await supabase.functions.invoke('update-report-status', {
+        body: { id: report.id, status: newStatus }
+      });
+
       if (error) {
         console.error("Error updating report status:", error);
-      } else {
+      } else if (data?.success) {
         // Show success message when marking as resolved
         if (newStatus === "resolved") {
           setSuccessMessage("Report marked as resolved successfully!");
@@ -107,9 +99,11 @@ const ResidentIssues = () => {
             setSuccessMessage(null);
           }, 3000);
         }
+      } else {
+        console.error("Failed to update report status:", data?.error);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error updating report status:", err);
     }
   };
 

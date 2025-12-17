@@ -38,95 +38,56 @@ const Dashboard = ({ onNavigate = () => {} }) => {
   const [routes, setRoutes] = useState([]);
   const [collections, setCollections] = useState([]);
   const [reports, setReports] = useState([]);
+  const [statistics, setStatistics] = useState({});
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     let isMounted = true;
     let isCleaningUp = false;
 
-    const fetchRoutes = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("routes")
-          .select("*")
-          .order("route", { ascending: true });
+        setLoading(true);
+        const { data, error } = await supabase.functions.invoke('get-dashboard-data');
 
         if (error) {
-          console.error("Error fetching routes:", error);
+          console.error("Error fetching dashboard data:", error);
+          if (isMounted) {
+            setLoading(false);
+          }
           return;
         }
 
-        if (isMounted) {
-          setRoutes(data || []);
+        if (isMounted && data?.success) {
+          console.log(`📊 Dashboard: Loaded ${data.data.collections?.length || 0} collections`);
+          setRoutes(data.data.routes || []);
+          setCollections(data.data.collections || []);
+          setReports(data.data.reports || []);
+          setStatistics(data.data.statistics || {});
+          setLoading(false);
+        } else if (isMounted) {
+          console.error("Dashboard data fetch failed:", data?.error);
+          setLoading(false);
         }
       } catch (err) {
-        console.error("Error fetching routes:", err);
-      }
-    };
-
-    const fetchCollections = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("collections")
-          .select("*")
-          .order("collected_at", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching collections:", error);
-          return;
-        }
-
+        console.error("Error in dashboard data fetch:", err);
         if (isMounted) {
-          console.log(`📊 Dashboard: Loaded ${data?.length || 0} collections`);
-          setCollections(data || []);
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("Error fetching collections:", err);
       }
     };
 
-    const fetchReports = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("reports")
-          .select("*")
-          .order("created_at", { ascending: false });
+    fetchDashboardData();
 
-        if (error) {
-          console.error("Error fetching reports:", error);
-          return;
-        }
-
-        if (isMounted) {
-          setReports(data || []);
-        }
-      } catch (err) {
-        console.error("Error fetching reports:", err);
-      }
-    };
-
-    const fetchAllData = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchRoutes(),
-        fetchCollections(),
-        fetchReports()
-      ]);
-      if (isMounted) {
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
-
-    // Set up real-time subscriptions
+    // Set up real-time subscriptions for live updates
     const routesChannel = supabase
       .channel("routes-changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "routes" },
         () => {
-          if (isMounted) {
-            fetchRoutes();
+          if (isMounted && !isCleaningUp) {
+            fetchDashboardData();
           }
         }
       )
@@ -142,10 +103,10 @@ const Dashboard = ({ onNavigate = () => {} }) => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "collections" },
-        (payload) => {
-          console.log("📊 Dashboard: Collection change detected:", payload.eventType);
-          if (isMounted) {
-            fetchCollections();
+        () => {
+          console.log("📊 Dashboard: Collection change detected");
+          if (isMounted && !isCleaningUp) {
+            fetchDashboardData();
           }
         }
       )
@@ -176,8 +137,8 @@ const Dashboard = ({ onNavigate = () => {} }) => {
         "postgres_changes",
         { event: "*", schema: "public", table: "reports" },
         () => {
-          if (isMounted) {
-            fetchReports();
+          if (isMounted && !isCleaningUp) {
+            fetchDashboardData();
           }
         }
       )
